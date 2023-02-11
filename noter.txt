@@ -1,0 +1,34 @@
+# computable overvejelser
+Jeg brugte lang tid på at prøve at finde en måde at lave en computable algoritme baseret på data.mv_polynomial fra matlib, selvom den fil er markeret som noncomputable theory. Svaret fra Zulip var, at det kan man ikke.
+
+Efter at have snakket med Niels besluttede vi, at bruge mv_polynomial fra mathlib alligevel. Så vil evt. algoritmer ikke blive beregnelige, men det er vidst ok. Matematiker-tilgangen.
+
+Jeg starter med at vise Dicksons lemma
+
+# N-vektor repræsentation
+Dicksons lemma arbejder med mængder af vektorer over nat. Første spørgsmål var, hvordan de skal repræsenteres. 
+
+Først gjorde jeg det som en type set( \sigma \to\_0 \N), men der kan jeg ikke sikre at alle vektorerne har samme dimension.
+
+Så brugte sig [fintype \sigma] set (\sigma \to \N). Så hvar spørgsmålet hvordan man laver induktion på fintypes.
+
+Første valg var fintype.induction_subsingleton_or_nontrivial, men den laver induktion over en fintype \beta, som har mindre kardinalitet end \sigma. Så skal jeg til at definere en injektion \beta \to \sigma, og det blev for besværligt.
+
+Så kan man bruge, at en fintype har et finset med samme elementer, og lave induktion med finset.induction_on, der laver induktion på delmængder at finsettet. Men det virkede ikke, da jeg får en induktionshypotese af type
+x: σ
+s_σ: finset σ
+x_nin_s_σ: x ∉ s_σ
+hd : (∀ (x : σ), x ∈ s_σ) 
+     → (∃ (v : finset (σ → ℕ)), ↑v ⊆ S ∧ S ⊆ {n : σ → ℕ | ∃ (n' v' : σ → ℕ) (H : v' ∈ S), n = n' + v'})
+og det virker ikke som om jeg kan bevise antagelsen i hd.
+
+Derefter brugte jeg set (vector \N n). Det lader til at virke ok, det er i hvert fald der jeg er nået længst. Det er stadig dybt besværligt at skulle konvertere mellem finset og set hele tiden, det har en tendens til at tilføje nye mål at type 'has_lift_t fintype (..) set (..)', men løsningen er at lade være med at skrive typen på sine variable eksplicit, men lade Lean inferere dem, dvs skriv
+have ex_v := single_preimage S S' v' vector.tail v'_sub_S' h,
+og lad Lean inferere at
+ex_v: ∃ (v : finset (vector ℕ n_n.succ)), ↑v ⊆ S ∧ tail '' ↑v = ↑v'
+
+Det tager en del tid at lære alle lemmaerne fra mathlib at kende. Senest lærte jeg om sep-familien. Der er nemlig forskel på
+{s : vector \N n | ... }
+og
+{s \in S | ... }
+og til det sidste tilfælde skal man bruge sep-familien, f.eks. set.mem_sep_iff.
