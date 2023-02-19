@@ -1,0 +1,467 @@
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage[utf8]{inputenc}
+% \usepackage{tgtermes}
+% \usepackage{fouriernc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=3cm]{geometry}
+\usepackage{babel}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\usepackage{ebproof}
+
+\usepackage{enumerate}
+\usepackage{verbatim}
+
+\usepackage{xcolor}
+
+\usepackage{listings}
+\usepackage{quiver}
+
+\usepackage[skip=10pt]{parskip}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\Prop}{\mathit{Prop}}
+\newcommand{\type}{\text{ type}}
+\DeclareMathOperator{\Arg}{Arg}
+
+
+% Kan Danny godt lide
+\usepackage[autostyle]{csquotes}
+\usepackage{kpfonts}
+\usepackage{inconsolata}
+\linespread{1.06}
+
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{%
+	pdftitle=Mathematical project in Lean,
+	pdfauthor={Andreas Bøgh Poulsen},
+	colorlinks,
+	linkcolor={red!50!black},
+	citecolor={red!50!black},
+	urlcolor={red!50!black},
+	bookmarksnumbered=true
+}
+
+\usepackage[ntheorem]{mdframed}
+\usepackage[amsmath,thmmarks,hyperref]{ntheorem}
+\usepackage[capitalize]{cleveref}
+
+% Frame for theorems
+\definecolor{shadecolor}{gray}{0.93}
+\definecolor{rulecolor}{gray}{0.4}
+\mdfdefinestyle{thmframed}{%
+	%usetwoside=false, % For use with memoir twoside
+	skipabove=0.5em plus 0.4em minus 0.2em,
+	skipbelow=0.5em plus 0.4em minus 0.2em,
+	leftmargin=-7pt, rightmargin=-7pt, innerleftmargin=6pt,
+	innerrightmargin=6pt, innertopmargin=6pt, innerbottommargin=3pt,
+	linewidth=1pt, linecolor=rulecolor, backgroundcolor=shadecolor,
+	splittopskip=1.2em minus 0.2em,
+	splitbottomskip=0.5em plus 0.2em minus 0.1em,
+}
+
+% New theorem style with a dot
+\makeatletter
+\newtheoremstyle{changedot}%
+  {\item[\hskip\labelsep \theorem@headerfont ##2~~$\cdot$~~##1\theorem@separator]}%
+  {\item[\hskip\labelsep \theorem@headerfont ##2~~$\cdot$~~##1\ (##3)\theorem@separator]}
+
+\newtheoremstyle{changedotbreak}%
+  {\item\hbox to \textwidth{\theorem@headerfont ##2~~$\cdot$~~##1\theorem@separator\hfill}}%
+  {\item\hbox to \textwidth{\theorem@headerfont ##2~~$\cdot$~~##1\
+      (##3)\theorem@separator\hfill}}
+\makeatother
+
+\theoremstyle{changedot}
+\theoremseparator{.}
+\newmdtheoremenv[style=thmframed]{theorem}{Theorem}[section]
+\newmdtheoremenv[style=thmframed]{proposition}[theorem]{Proposition}
+\newmdtheoremenv[style=thmframed]{lemma}[theorem]{Lemma}
+\newmdtheoremenv[style=thmframed]{corollary}[theorem]{Corollary}
+
+\theorembodyfont{\normalfont}
+%\theoremsymbol{\ensuremath{\triangle}}
+\newmdtheoremenv[style=thmframed]{definition}[theorem]{Definition}
+
+\theoremstyle{changedotbreak}
+\newmdtheoremenv[style=thmframed]{definitionbreak}[theorem]{Definition}
+
+\theoremstyle{nonumberplain}
+\theoremheaderfont{\normalfont\itshape}
+\theorembodyfont{\normalfont}
+\theoremsymbol{\ensuremath{\square}}
+\newtheorem{proof}{Proof}
+
+\Crefname{theorem}{Theorem}{Theorems}
+\Crefname{proposition}{Proposition}{Propositions}
+\Crefname{lemma}{Lemma}{Lemmata}
+\Crefname{corollary}{Corollary}{Corollaries}
+\Crefname{definition}{Definition}{Definitions}
+
+\crefformat{equation}{(#2#1#3)}
+
+% / Kan Danny godt lide
+
+\title{Mathematical project in \textsf{L$\exists \forall$N}\\{\large \textsc{An innocent mathematicians guide to lean}}}
+\author{Andreas Bøgh Poulsen, studienummer: 201805425}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+\begin{abstract}
+
+\end{abstract}
+\newpage
+
+\section*{Introduction}
+The following is a project, in which I try to learn how to do formalized mathematics, using Lean as my proof checker. This document is a report on my learnings, and is intended as a resource for other mathematicians, who may wish to learn about Lean. 
+
+\section{Martin-Löf dependent type theory}
+Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system. If you're only interested in learning Lean, feel free to skip this section.
+
+\subsection{Inference rules}
+A Inference rule is on the form
+
+\begin{prooftree}
+  \hypo{\Gamma \vdash P}
+  \hypo{\Gamma \vdash Q}
+  \infer2[$\land$-intro]{\Gamma \vdash P \land Q}
+\end{prooftree}
+
+which is read as follows: if we, in a context $\Gamma$, can prove $P$ and in the same environment can prove $Q$, then we can prove $P \land Q$ in the context $\Gamma$.
+
+The defining feature of {\emph type} theory is, that every element has a type. Thus the above is meaningless, as $P$ and $Q$ have no type. Compare this to ZFC, where everything is either a proposition from first order logic, or a set. This leads to weird statements like $0 \in 1$, which is well-posed since everything is a set, but does not carry a meaning in our ``usual'' way of doing mathematics. Type theory asks that every element has a type. This is particularly helpful when doing computerized proofs, as it helps the proof-checker catch weird statements like $0 \in 1$. Since $1$ has the type of a natural number and the type of a set, it can give an error, instead of silently trying to prove what may well have been a typo.
+
+In type theory the above rewrite rule would look like this:
+
+\begin{prooftree}
+  % \hypo{\Gamma \vdash \mathit{Prop} \text{ type}}
+  \hypo{\Gamma \vdash P : \mathit{Prop}}
+  \hypo{\Gamma \vdash Q : \mathit{Prop}}
+  \infer2[$\land$-intro]{\Gamma \vdash P \land Q : \Prop}
+\end{prooftree}
+
+Everything is read the same, except $P : \Prop$ is read ``$P$ has type $\Prop$''. $\Prop$ is the type of propositions. I will not spend too much time going through every single single inference rule. I will, however, introduce the defining features of dependent type theory: dependent types, and show how they are used.
+
+\begin{definition}
+  Type theory has four different \textit{judgements}.
+  \begin{enumerate}
+    \item $\Gamma \vdash A \text{ type}$ says $A$ is a well-formed type in context $\Gamma$.
+    \item $\Gamma \vdash A \doteq B \text{ type}$ says $A$ and $B$ are judgementally equal types in context $\Gamma$.
+    \item $\Gamma \vdash a : A$ says $a$ is an element of type $A$ in context $\Gamma$.
+      \item $\Gamma \vdash a \doteq b \text{ type}$ says $a$ and $b$ both have type $A$ and are judgementally equal.
+  \end{enumerate}
+\end{definition}
+
+As we would expect, there are axioms making this an equivalence relation:
+
+\begin{align*}
+  &\begin{prooftree}
+    \hypo{\Gamma \vdash a : A}
+    \infer1{\Gamma \vdash a \doteq a : A}
+  \end{prooftree}
+  &
+  \begin{prooftree}
+    \hypo{\Gamma \vdash a \doteq b : A}
+    \infer1{\Gamma \vdash b \doteq a : A}
+  \end{prooftree}
+  &
+  &\begin{prooftree}
+    \hypo{\Gamma \vdash a \doteq b : A}
+    \hypo{\Gamma \vdash b \doteq c : A}
+    \infer2{\Gamma \vdash a \doteq c : A}
+  \end{prooftree}
+\end{align*}
+
+and similarly for types. There is also a rule stating that you can substitute judgementally equal elements anywhere.
+
+Judgemental equality is actually a very strong equality, and many objects we usually consider equal, cannot be proven judgementally equal. Later we'll introduce a weaker equality, that captures better our usual understanding of equality. Stay tuned, the formulation may surprise you.
+
+We need to introduce dependent types as well as functions, before we can get going.
+
+\begin{definition}
+  A \textit{dependent type} is a type of the form $\Gamma, x : A \vdash B(x) \text{ type}$ with a rule letting us assume elements of that type:
+
+  \begin{center}
+    \begin{prooftree}
+      \hypo{\Gamma \vdash A \text{ type}}
+      \infer1{\Gamma a : A \vdash a : A}
+    \end{prooftree}
+  \end{center}
+
+
+  A \textit{section} of a dependent type $B(x)$ is an element $\Gamma, x : A \vdash b(x) : B(x)$.
+\end{definition}
+
+Note that for different $x : A$ in the context, $B(x)$ may be different type. Using dependent types we can introduce functions:
+
+\begin{definition}
+  A \textit{function type} is the type of sections of a dependent type $B(x)$, given by the following introduction rules:
+
+  \begin{align*}
+    &\begin{prooftree}
+      \hypo{\Gamma, x : A \vdash B(x) \text{ type}}
+      \infer1{\Gamma \vdash \Pi_{x:A} B(x) \text{ type}}
+    \end{prooftree}
+      &
+    &\begin{prooftree}
+      \hypo{\Gamma, x : A \vdash b(x) : B(x)}
+      \infer1{\Gamma \vdash \lambda x, b(x) : \Pi_{x:A} B(x)}
+    \end{prooftree}
+  \end{align*}
+
+  and has the following evaluation rules:
+
+  \begin{align*}
+    &\begin{prooftree}
+      \hypo{\Gamma \vdash f : \Pi_{x:A} B(x)}
+      \infer1{\Gamma, x : A \vdash f(x) : B(x)}
+    \end{prooftree}
+    &
+    &\begin{prooftree}
+      \hypo{\Gamma, x : A \vdash b(x) : B(x)}
+      \infer1{\Gamma, x : A \vdash (\lambda x, b(x))(x) \doteq b(x) : B(x)}
+    \end{prooftree}
+  \end{align*}
+
+\end{definition}
+
+\textit{Remark} Not all types are dependent. If $B(x)$ is independent of $x$ we will just write $B$ and functions as $A \to B$.
+
+\subsection{Logic in type theory}
+We now have the building blocks to start formulating usual logic in dependent type theory. The basic idea is to interpret types as propositions. A proof of a proposition corresponds to an element of a type. Thus a false proposition is a type without any elements, and a true proposition is a type with at leat one element. In this interpretation, implication simply becomes a function. $f : A \to B$ says ``f takes an element of $A$ and produces an element of $B$'' or as propositions ``f takes a proof of $A$ and produces a proof of $B$'', which is exactly what an implication does.
+
+\begin{align*}
+  \begin{prooftree}
+    \infer0{\vdash \emptyset}
+  \end{prooftree} & & 
+  \begin{prooftree}
+    \infer0{\vdash ind_{\emptyset} : \Pi_{x:\emptyset} P(x)}
+  \end{prooftree}
+\end{align*}
+
+The rule $\mathit{ind}_{\emptyset}$ states, that we can prove everything from false. 
+
+where $\mathit{ind}_{\emptyset}$ states that everything is true about elements of the empty type. Thus we can interpret something being false $\neg A$ as the type $A \to \emptyset$. We can then prove the statement $(A \implies B) \implies (\neg B \implies \neg A)$. In type theory, this translates to $(A \to B) \to ((B \to \emptyset) \to (A \to \emptyset))$. The construction is as follows:
+
+\begin{center}
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \text{ type}}
+    \infer1{\Gamma, a : A \vdash a : A}
+    \hypo{\Gamma \vdash A \text{ type}}
+    \infer1{\Gamma, a : A \vdash a : A}
+    \hypo{\Gamma \vdash B \text{ type}}
+    \infer2{\Gamma \vdash A \to B \text{ type}}
+    \infer1{\Gamma, h : A \to B \vdash h : A \to B}
+    \infer2{\Gamma, a : A, h : A \to B \vdash h(a) : B}
+    \hypo{\Gamma \vdash B \text{ type}}
+    \infer1{\Gamma, b : B \vdash b : B}
+    \infer0{\vdash \emptyset \text{ type}}
+    \infer2{\Gamma \vdash B \to \emptyset \text{ type}}
+    \infer1{\Gamma, f : B \to \emptyset \vdash f : B \to \emptyset}
+    \infer2{\Gamma, a : A, f : B \to \emptyset, h : A \to B \vdash f(h(a)) : \emptyset}
+    \infer1{\Gamma, f : B \to \emptyset, h : A \to B \vdash \lambda a, f(h(a)) : A \to \emptyset}
+    \infer1{\Gamma, h : A \to B \vdash \lambda f, \lambda a, f(h(a)) : (B \to \emptyset) \to (A \to \emptyset)}
+    \infer1{\Gamma \vdash \lambda h, \lambda f, \lambda a, f(h(a)) : (A \to B) \to ((B \to \emptyset) \to (A \to \emptyset))}
+  \end{prooftree}
+\end{center}
+
+You'll note that we didn't use $\mathit{ind}_{\emptyset}$ in the constrution. Indeed, this is a special case of the more general formula $(A \to B) \to ((B \to C) \to (A \to C))$, which we get simply by composing functions. We'll denote $f \circ g := \lambda x, f(g(x))$ and refer to the above proof tree for its construction.
+
+So how do we actually use $\mathit{ind}_{\emptyset}$? Well, we can't prove much right now, but if we introduce \textit{or}:
+
+\begin{align*}
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash B \text{ type}}
+    \infer2{\Gamma \vdash A \lor B \text{ type}}
+  \end{prooftree} & &
+  \begin{prooftree}
+    \hypo{\Gamma \vdash a : A}
+    \hypo{\Gamma \vdash B \text{ type}}
+    \infer2{\Gamma \vdash \iota_{1} : A \to A \lor B}
+  \end{prooftree}
+  &&
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash b : B}
+    \infer2{\Gamma \vdash \iota_{2} : B \to A \lor B}
+  \end{prooftree}
+\end{align*}
+\begin{align*}
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash B \text{ type}}
+    \infer2{\Gamma \vdash \mathit{ind}_{\lor} : (\Pi_{a:A} P(\iota_{1}(a))) \to (\Pi_{b:B} P(\iota_{2}(b))) \to (\Pi_{z:A\lor B} P(z))}
+    % \hypo{\Gamma \vdash l : \Pi_{a:A}P(a)}
+    % \hypo{\Gamma \vdash r : \Pi_{b:B} P(b)}
+    % \infer2{\Gamma \vdash ind_{\lor} : \Pi_{z : A \lor B} P(z)}
+  \end{prooftree}
+  \\ \\
+  \begin{prooftree}
+    \hypo{\Gamma \vdash a : A}
+    \hypo{\Gamma \vdash l : \Pi_{a:A}P(a)}
+    \hypo{\Gamma \vdash r : \Pi_{b:B} P(b)}
+    \infer3{\Gamma \vdash ind_{\lor}(l, r, \iota_{1}(a)) \doteq l(a) : P(a)}
+  \end{prooftree} \\ \\
+  \begin{prooftree}
+    \hypo{\Gamma \vdash b : B}
+    \hypo{\Gamma \vdash l : \Pi_{a:A}P(a)}
+    \hypo{\Gamma \vdash r : \Pi_{b:B} P(b)}
+    \infer3{\Gamma \vdash ind_{\lor}(l, r, \iota_{2}(b)) \doteq r(b) : P(b)}
+  \end{prooftree}
+\end{align*}
+
+we can prove the following: $\neg A \to (A \lor B) \to B$.
+
+\begin{center}
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \type}
+    \hypo{\Gamma \vdash B \type}
+    \infer2{\Gamma \vdash \lambda h, \lambda z, ind_\lor(\mathit{ind_\emptyset} \circ h, \mathit{id}, z) : (A \to \emptyset) \to (A \lor B) \to B}
+  \end{prooftree}
+\end{center}
+
+Okay, that was quite a mouthful. Let's work through the rules for $\lor$ in order. First, assuming two types $A$ and $B$, we can form the disjunction $A \lor B$. We have two rules for forming elements of $A \lor B$, namely $\iota_{1}$ and $\iota_{2}$ which take an element of $A$, resp. $B$ and forms an element of $A \lor B$. Next line, we have a way to use a disjunction. Given a proof of $P$ assuming $A$ and a proof of $P$ assuming $B$, we get  proof of $P$ assuming $A \lor B$. The final two lines state, that $\mathit{ind}_{\lor}$ behaves the way we expect it to.
+
+Using these, the proof if the assertion above becomes
+
+\begin{center}
+  \begin{prooftree}
+    \hypo{\Gamma \vdash A \type}
+    \hypo{\Gamma \vdash B \type}
+    \infer2{\Gamma \vdash A \lor B \type }
+    \infer1{\Gamma, z : A \lor B \vdash z : A \lor B}
+    \hypo{\Gamma \vdash A \type}
+    \infer0{\vdash \emptyset \type}
+    \infer2{\Gamma \vdash A \to \emptyset \type}
+    \infer1{\Gamma, h : A \to \emptyset \vdash h : A}
+    \infer0{\vdash ind_\emptyset : \dots }
+    \infer2{\Gamma \vdash ind_\emptyset \circ h : A \to B}
+    \hypo{\Gamma \vdash A \type}
+    \hypo{\Gamma \vdash B \type}
+    \infer2{\Gamma \vdash ind_\lor : \dots }
+    \infer3{\Gamma, h : A \to \emptyset, z : A \lor B \vdash ind_\lor(\mathit{ind_\emptyset} \circ h, \mathit{id}, z) : B}
+    \infer1{\Gamma, h : A \to \emptyset \vdash \lambda z, ind_\lor(\mathit{ind_\emptyset} \circ h, \mathit{id}, z) : (A \lor B) \to B}
+    \infer1{\Gamma \vdash \lambda h, \lambda z, ind_\lor(\mathit{ind_\emptyset} \circ h, \mathit{id}, z) : (A \to \emptyset) \to (A \lor B) \to B}
+  \end{prooftree}
+\end{center}
+
+I have omitted some types to make the tree fit the page, but the crux of the argument is, that from an implication $A \to \emptyset$ and a proof of $A$, we can use $ind_{\emptyset}$ to prove $B$. Thus we have a function $(A \to \emptyset) \to B$, which we can use, together with $id : B \to B$ to prove $B$ from a $A \lor B$.
+
+Okay, so we have negation, implication and disjunction. I encourage you to imagine how conjunction would be defined. But what about quantors? We'll postpone the existential quantor until later, as it's formulation is quite subtle, but universal quantification is surprisingly straightforward. $\forall x. P(x)$ states that for every x $x$, we get a proof of $P(x)$. That sounds like a function to me. And indeed, we simply define $\forall := \Pi$. 
+
+This may be surprising, but it actually highlights a strength of dependent type theory as a logical framework: everything, even proofs, is just elements of types. The disjunction, as defined above, is also known as the coproduct in functional programming languages. In the next section, we'll take full advantage of this idea.
+
+\subsection{The natural numbers}
+So far we've only thought about propositions. Let's introduce to natural numbers, as an example of something non-propositional.
+
+\begin{align*}
+ &\begin{prooftree}
+    \infer0{\vdash \N \text{ type }}
+  \end{prooftree}
+   &
+  &\begin{prooftree}
+    \infer0{\vdash 0_{\N} : \N}
+    \end{prooftree}
+    &
+    &\begin{prooftree}
+      \infer0{\vdash succ_{\N} : \N \to \N}
+    \end{prooftree}
+\end{align*}
+\begin{align*}
+  \begin{prooftree}
+    \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+    \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
+    \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
+    \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}) : \Pi_{n:\N} P(n)}
+  \end{prooftree}
+\end{align*}
+\begin{align*}
+  \begin{prooftree}
+      \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+      \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
+      \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
+      \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}, 0_{\N}) \doteq p_{0} : P(0_{\N})}
+  \end{prooftree}
+\end{align*}
+\begin{align*}
+  \begin{prooftree}
+      \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+      \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
+      \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
+      \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}, succ_{\N}(n)) \doteq p_{s}(n, ind_{\N}(p_{0}, p_{s}, n)) : P(succ_{\N}(n))}
+  \end{prooftree}
+\end{align*}
+
+The first three rules govern the construction of natural numbers, and the next rule is the induction rule. If we for a moment assume $P$ is a predicate, it reads ``Given a predicate $P$, a proof of $P(0)$ and proof of $P(n) \implies P(succ(n))$ we get a proof of $\forall n: P(n)$.'' The two final rules simply state, that induction behaves as we expect.
+
+All these inference rules are quite heavy. Let's introduce some lighter notation:
+
+\begin{lstlisting}[mathescape=true]
+  type $\N$ :=
+  | zero$_\N$ : $\N$
+  | succ$_\N$ : $\N \to \N$
+\end{lstlisting}
+
+Everything in the inference rules is derivable from this definition. We can similarly define
+
+\begin{lstlisting}[mathescape=true]
+  type A$\lor$B :=
+  | $\iota_{1}$ : A $\to$ A$\lor$B
+  | $\iota_{2}$ : B $\to$ A$\lor$B
+\end{lstlisting}
+
+Let's define addition and prove some identities. We would like addition to respect the following specification:
+\begin{align*}
+  \mathit{add}_{\N} (0, n) &\doteq n \\
+  \mathit{add}_{\N} (m, succ_{\N} (n) &\doteq succ(\mathit{add}_{\N}(m, n))
+\end{align*}
+and we would like to do it using the induction rule on $\N$. Remember $ind_{\N}(p_{0}, p_{s})$ has type $\Pi_{n:\N} P(n)$ and addition needs to have type $\N \to (\N \to \N)$. Thus $P$ needs to have type $\N \to \N$. The idea is that $ind_{\N}(p_{0}, p_{s}, n)$ should produce a function adding $n$ to a number. Then $ind_{\N}(p_{0}, p_{s}, n)(m)$ computes $n+m$.
+
+First, let's define $p_{0} := id : \N \to \N$. This is a function taking a number and adding 0 to it. Then we need to define $p_{s} : \N \to (\N \to \N) \to (\N \to \N)$, that is, given a number $n$ and a function adding $n$ to a number, return a function adding $n+1$ to a number. This is simply $p_{s}(n, f) := succ_{\N} \circ f$. Thus \[add := \lambda m, \lambda n, ind_{\N}(id, \lambda x, \lambda f, succ_{\N} \circ f, n)(m) : \N \to \N \to \N.\]
+
+We can see that it satisfies our specification:
+
+\begin{align*}
+  add_{\N}(0, n) &\doteq \lambda m, \lambda n, ind_{\N}(id, \lambda x, \lambda f, succ_{\N} \circ f, 0_{\N})(m) \\
+                 &\doteq id(0_{\N}) \\
+                 &\doteq 0_{\N} \\ \\
+  add_{\N}(m, succ_{\N}(n)) &\doteq \lambda m, \lambda n, ind_{\N}(id, \lambda x, \lambda f, succ_{\N} \circ f, succ_{\N}(n))(m) \\
+                 &\doteq (\lambda f, succ_{\N} \circ f)(n, ind_{\N}(id, \lambda x,\lambda f, succ_{\N} \circ f), n)(m) \\
+\end{align*}
+
+
+or written as a proof tree
+
+\begin{center}
+  \begin{prooftree}
+
+    \infer1{}
+    \infer0{\vdash ind_\N : \dots }
+    \infer1{n : \N, m : \N \vdash ind_{\N}(id, \lambda f, succ_{\N} \circ f, n)(m) : \N}
+    \infer1{n : \N \vdash \lambda m, ind_{\N}(id, \lambda f, succ_{\N} \circ f, n)(m) : \N \to \N}
+    \infer1{\vdash \lambda n, \lambda m, ind_{\N}(id, \lambda f, succ_{\N} \circ f, n)(m) : \N \to \N \to \N}
+  \end{prooftree}
+\end{center}
+
+
+
+
+
+\section{Mathematics in type theory and Lean}
+
+\section{Gröbner bases as an extended example}
+
+\end{document}
