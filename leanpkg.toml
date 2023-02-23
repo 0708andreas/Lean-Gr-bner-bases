@@ -1,8 +1,8 @@
 [package]
 name = "Groebner"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.48.0"
+lean_version = "leanprover-community/lean:3.50.3"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "6d8e6ead608ba0b4bc2a1769e436098b5eb2dd97"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "296726c93ccf37fa3bb8fa8c3a35e6e456ef429b"}
