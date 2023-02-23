@@ -31,9 +31,10 @@ def init [r : monomial_order n] (m : multinomial n R) : vector ℕ n :=
   @dite _ (m = 0) (classical.prop_decidable (m=0))
   (λ h, (0 : vector ℕ n))
   (λ h, finset.max' m.support begin
-    rw nonempty_iff_ne_empty,
+    rw finset.nonempty_iff_ne_empty,
     by_contradiction h2,
-    rw ←ne.def at h,admit,
+    rw ←ne.def at h,
+    admit,
   end)
 
 -- def init [r : monomial_order n] (m : multinomial n R) (h : m ≠ 0) : vector ℕ n := begin

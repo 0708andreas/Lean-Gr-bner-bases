@@ -1,46 +1,60 @@
 import data.nat.basic
 import data.vector.zip
+import data.finset.basic
 import algebra.monoid_algebra.basic
 import ring_theory.ideal.basic
 import dickson
-import multinomials
+import data.mv_polynomial.basic
+import monomial_order
+import dickson_add_monoid
+import dickson
 
 noncomputable theory
 
-open vector set finset finsupp multinomial
+open vector set finset finsupp mv_polynomial
 
 universe u
-variables {R : Type u} [field R] {n : ℕ} [decidable_eq (multinomial n R)]
+variables {σ : Type*} [finite σ] [decidable_eq σ]
+variables {R : Type u} [field R] {n : ℕ} [decidable_eq R]
 
 
-def groebner_basis (F : finset (multinomial n R)) (I : ideal (multinomial n R)) : Prop :=
-  ((↑F : (set (multinomial n R))) ⊆ ↑I)
-  ∧ ∀ f ∈ I, ∃ f' : multinomial n R, f' ∈ F ∧ dvd f' f
-class is_groebner_basis (F : finset (multinomial n R)) (I : ideal (multinomial n R)) :=
-  (groebner : ∀ f ∈ I, ∃ f' : multinomial n R, f' ∈ F ∧ dvd f' f)
+def grobner_basis [term_order σ] (F : finset (mv_polynomial σ R)) (I : ideal (mv_polynomial σ R)) : Prop :=
+  ((↑F : (set (mv_polynomial σ R))) ⊆ I) ∧
+  (∀ f ∈ I, ∃ f' : mv_polynomial σ R, (f' ∈ F) ∧ ((IN f') ∣ (IN f))) 
 
-theorem exists_groebner_basis [r : monomial_order n] (I : ideal (multinomial n R)) :
-  ∃ (F : finset (multinomial n R)), groebner_basis F I := begin
-    -- let S := {v : vector ℕ n | ∃ f ∈ I, v = (init f)},
-    let S : set (vector ℕ n) := init '' (↑I : set (multinomial n R)),
-    have v := dickson n S,
-    cases v with v hv,
-    have F := single_preimage (↑I : set (multinomial n R)) v init hv.left,
-    cases F with F hF,
-    apply exists.intro F,
-    rw groebner_basis,
+theorem exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
+  ∃ F : finset (mv_polynomial σ R), grobner_basis F I := begin
+    -- let S := {v : σ →₀ ℕ | ∃ f : mv_polynomial σ R, f ∈ I ∧ IN(f) = v},
+    let SI := {f : mv_polynomial σ R | f ∈ I},
+    let S := IN '' SI,
+    have exi_V := mv_dickson S,
+    cases exi_V with V hV,
+    cases hV with V_sub_S S_sub_upper,
+    let Vf := single_preimage SI V IN V_sub_S,
+    choose Vf H using Vf,
+    existsi Vf,
     split, {
-      exact hF.left,
+      intros f hf,
+      have f_in_SI := mem_of_subset_of_mem H.left hf,
+      rw set_like.mem_coe,
+      exact f_in_SI,
     }, {
       intros f hf,
-      
-    },
-    have fi := λ s ∈ v, begin
-      rw ←finset.mem_coe at H,
-      have s_in_S := set.mem_of_mem_of_subset H hv.left,
-      choose f hf using s_in_S,
-    end,
-    apply exists.intro,
-    
-
+      have f_in_SI : f ∈ SI := hf,
+      have in_f_in_S : IN(f) ∈ S := mem_image_of_mem IN f_in_SI,
+      have in_f_in_upper := mem_of_subset_of_mem S_sub_upper in_f_in_S,
+      cases in_f_in_upper with x hx,
+      rcases hx with ⟨ s, ⟨ hs, f_eq⟩  ⟩, 
+      rw ←H.right at hs,
+      rw finset.mem_image at hs,
+      rcases hs with ⟨ f', ⟨ hf', f'_eq ⟩⟩,
+      existsi f',
+      split, {
+        exact hf',
+      }, {
+        simp *,
+        existsi x,
+        rw add_comm_monoid.add_comm x s,
+      },
+    }
   end

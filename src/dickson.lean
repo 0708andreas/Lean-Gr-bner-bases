@@ -1,24 +1,15 @@
 import tactic.choose
-import data.finset
+import data.finset.image
+import data.finset.lattice
+import data.fintype.basic
 import data.vector
 import data.vector.zip
-import data.set
+import data.set.basic
 import vector_add_monoid
 
 noncomputable theory
 
 open classical finset set vector
-
-lemma single_choice {α : Type*} {p : α → Prop} (h : ∃ (a : α), p a) : {a // p a} := begin
-  choose b hb using h,
-  exact ⟨ b, hb ⟩,
-end
-
-def choose {α : Type*} {p : α → Prop} (h : ∃ a : α, p a) : α := 
-  (single_choice h).1
-
-lemma choose_prop {α : Type*} {p : α → Prop} (h : ∃ a : α, p a) : p (choose h) := 
-  (single_choice h).2
 
 -- def finset_preimage {α β : Type*} [decidable_eq α] [decidable_eq β] (S : set α) (v' : finset β) (f : α → β) (sub : ↑v' ⊆ f '' S) :
 --   ∃ v : finset α, ↑v ⊆ S ∧ finset.image f v = v' :=
@@ -32,7 +23,7 @@ lemma choose_prop {α : Type*} {p : α → Prop} (h : ∃ a : α, p a) : p (choo
 --     admit,
 --   end
 
-def single_preimage {α β : Type*} [decidable_eq β] [decidable_eq α] (S : set α) (v' : finset β) (f : α → β) (sub : ↑v' ⊆ f '' S) :
+lemma single_preimage {α β : Type*} [decidable_eq β] [decidable_eq α] (S : set α) (v' : finset β) (f : α → β) (sub : ↑v' ⊆ f '' S) :
   (∃ (v : finset α), ↑v ⊆ S ∧ finset.image f v = v') :=
 begin
   let h := set.mem_image f S,
@@ -97,17 +88,8 @@ lemma exists_implies_commute {α β : Type} {p : α → β → Prop}
     exact true.intro,
   end
 
-lemma nd_axiom_of_choice {α β : Type} {p : α → β → Prop}
-  (f : ∀ (a : α), ∃ (b : β), p a b) : (Π (a : α), {b // p a b}) := begin
-    intro a,
-    have h := f a,
-    choose b hb using h,
-    exact ⟨ b, hb ⟩,
-  end
-
 def upper_set (n : ℕ) (v : finset (vector ℕ n)) : (set (vector ℕ n)) :=
   {x : vector ℕ n | ∃ (x' s : vector ℕ n) (H : s ∈ v), x = zip_with (+) x' s}
-
 
 def P (n : ℕ) (S : set (vector ℕ n)) (v : finset (vector ℕ n)) : Prop := 
     ↑v ⊆ S ∧
