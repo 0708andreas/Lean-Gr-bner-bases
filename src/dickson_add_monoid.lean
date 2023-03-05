@@ -59,6 +59,7 @@ theorem vector_N_equiv_finite_fto_N {σ : Type*} [f : finite σ] :
 def mv_upper_set {σ : Type*} [finite σ] (n : ℕ) (v : finset (σ →₀ ℕ)) : (set (σ →₀ ℕ)) :=
   {x : σ →₀ ℕ | ∃ (x' s : σ →₀ ℕ) (H : s ∈ v), x = x' + s}
 
+-- Note: man kan måske bruge finsupp.cons til at undgå finsets helt.
 theorem mv_dickson {σ : Type*} [decidable_eq σ] [finite σ] (S : set (σ →₀ ℕ)) :
   ∃ v : finset (σ →₀ ℕ), ↑v ⊆ S ∧ S ⊆ mv_upper_set (nat.card σ) v := begin
     let n := nat.card σ,
