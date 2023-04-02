@@ -8,22 +8,24 @@ import data.mv_polynomial.basic
 import monomial_order
 import dickson_add_monoid
 import dickson
+import mv_division
 
 noncomputable theory
 
 open vector set finset finsupp mv_polynomial
 
 universe u
-variables {σ : Type*} [finite σ] [decidable_eq σ]
+variables {σ : Type*} [finite σ] [decidable_eq σ] [finite σ] [term_order σ]
 variables {R : Type u} [field R] {n : ℕ} [decidable_eq R]
+variables {n : ℕ}
 
 
 def finset_grobner_basis [term_order σ] (F : finset (mv_polynomial σ R)) (I : ideal (mv_polynomial σ R)) : Prop :=
   ((↑F : (set (mv_polynomial σ R))) ⊆ I) ∧
   (∀f : mv_polynomial σ R, f ∈ F → f ≠ 0 ) ∧
-  (∀ f ∈ I, f ≠ 0 → ∃ f' : mv_polynomial σ R, (f' ∈ F) ∧ ((IN f') ∣ (IN f))) 
+  (∀ f ∈ I, f ≠ 0 → ∃ f' : mv_polynomial σ R, (f' ∈ F) ∧ ((LT f') ∣ (LT f))) 
 
-theorem exists_finset_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
+theorem finset_exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
   ∃ F : finset (mv_polynomial σ R), finset_grobner_basis F I := begin
     let SI := {f : mv_polynomial σ R | f ∈ I ∧ f ≠ 0 },
     let S := IN '' SI,
@@ -58,17 +60,42 @@ theorem exists_finset_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ
       split, {
         exact hf',
       }, {
+        have f'_in_SI : f' ∈ SI := mem_of_subset_of_mem H.left hf',
+        have f'_ne_zero : f' ≠ 0 := f'_in_SI.right,
+        rw LT,
+        rw LT,
+        existsi (monomial x ((coeff (IN f) f)/(coeff (IN f') f'))),
+        rw monomial_mul,
+        
+        rw field.div_eq_mul_inv,
+        rw mul_comm,
+        rw mul_assoc,
+        rw ←single_eq_monomial,
+        rw ←single_eq_monomial,
+        conv {
+          to_rhs,
+          congr,
+          skip,
+          congr,
+          skip,
+          rw mul_comm,
+        },
+        rw mul_inv_cancel _,
         simp *,
-        existsi x,
-        rw add_comm_monoid.add_comm x s,
-      },
-    }
+        conv {
+          to_rhs,
+          congr,
+          rw add_comm_monoid.add_comm,
+        },
+        exact coeff_IN_nonzero _ f'_ne_zero,
+      }
+    },
   end
 
 def grobner_basis {n : ℕ} [term_order σ] (F : fin n → (mv_polynomial σ R)) (I : ideal (mv_polynomial σ R)) : Prop :=
   (∀ m : fin n, F m ∈ I ∧ F m ≠ 0) ∧
-  (∀ f ∈ I, f ≠ 0 → ∃ m : fin n, (IN (F m)) ∣ (IN f))
-
+  (∀ f ∈ I, f ≠ 0 → ∃ m : fin n, (LT (F m)) ∣ (LT f))
+def span_ideal {n : ℕ} (G : fin n → mv_polynomial σ R) : ideal (mv_polynomial σ R) := ideal.span ( λf, ∃i, f = (G i) )
 theorem exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
   ∃ (n : ℕ) (F : fin n → (mv_polynomial σ R)), grobner_basis F I := begin
     let SI := {f : mv_polynomial σ R | f ∈ I ∧ f ≠ 0 },
@@ -103,14 +130,54 @@ theorem exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
       rcases hs with ⟨ f', ⟨ hf', f'_eq ⟩⟩,
       rw ←finset.mem_to_list at hf',
       rw list.mem_iff_nth_le at hf',
-      rcases hf' with ⟨ m, ⟨ hm, H ⟩ ⟩,
+      rcases hf' with ⟨ m, ⟨ hm, hf' ⟩ ⟩,
       existsi (⟨ m, hm ⟩ : fin n),
       have F_eq : F ⟨ m, hm ⟩  = Vf.to_list.nth_le m hm := rfl,
       rw F_eq,
-      rw H,
-      rw f_eq,
-      rw f'_eq,
-      existsi x,
-      rw add_comm_monoid.add_comm,     
+      rw hf',
+      existsi (monomial x ((coeff (IN f) f)/(coeff (IN f') f'))),
+      
+      have f'_in_Vf := list.nth_le_mem Vf.to_list m hm,
+      rw hf' at f'_in_Vf,
+      rw finset.mem_to_list at f'_in_Vf,
+      have f'_in_SI : f' ∈ SI := mem_of_subset_of_mem H.left f'_in_Vf,
+      have f'_ne_zero : f' ≠ 0 := f'_in_SI.right,
+      rw LT,
+      rw LT,
+      rw monomial_mul,
+        
+      rw field.div_eq_mul_inv,
+      rw mul_comm,
+      rw mul_assoc,
+      rw ←single_eq_monomial,
+      rw ←single_eq_monomial,
+      conv {
+        to_rhs,
+        congr,
+        skip,
+        congr,
+        skip,
+        rw mul_comm,
+      },
+      rw mul_inv_cancel _,
+      simp *,
+      conv {
+        to_rhs,
+        congr,
+        rw add_comm_monoid.add_comm,
+      },
+      exact coeff_IN_nonzero _ f'_ne_zero,
     },
+  end
+
+lemma span_ideal_basis (G : fin n → mv_polynomial σ R) : basis (fin n) R (span_ideal G) := begin
+
+end
+theorem div_zero_iff_member {n : ℕ} (f : mv_polynomial σ R) (G : fin n → mv_polynomial σ R) (H : grobner_basis G (span_ideal G)) :
+  mv_div_r f G = 0 ↔ f ∈ span_ideal G := begin
+    split, {
+      intro h,
+      rw span_ideal,
+      rw ideal.mem_span,
+    }, {}
   end

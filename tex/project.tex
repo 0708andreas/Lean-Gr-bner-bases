@@ -1,11 +1,14 @@
 \documentclass[a4paper, 12pt]{article}
 
-\usepackage[utf8]{inputenc}
+% \usepackage[utf8]{inputenc}
 % \usepackage{tgtermes}
 % \usepackage{fouriernc}
 \usepackage[T1]{fontenc}
 \usepackage[margin=3cm]{geometry}
 \usepackage{babel}
+
+\usepackage{biblatex}
+\addbibresource{refs.bib}
 
 \usepackage{amssymb}
 \usepackage{amsmath}
@@ -43,8 +46,18 @@
 % Kan Danny godt lide
 \usepackage[autostyle]{csquotes}
 \usepackage{kpfonts}
-\usepackage{inconsolata}
+% \usepackage{inconsolata}
 \linespread{1.06}
+
+\usepackage{minted}
+\usemintedstyle{tango}
+\setminted{fontsize=\footnotesize}
+\newcommand{\lean}[1]{\mintinline{lean}{#1}}
+
+\usepackage{fontspec}
+\setmonofont{JuliaMono}
+\setmainfont{Linux Libertine O}
+% \setmathfont[Digits, Latin]{Linux Biolinum O}
 
 \usepackage{xcolor}
 \usepackage{hyperref}
@@ -118,7 +131,7 @@
 
 % / Kan Danny godt lide
 
-\title{Mathematical project in \textsf{L$\exists \forall$N}\\{\large \textsc{An innocent mathematicians guide to lean}}}
+\title{Mathematical project in \textsf{L$\exists \forall\N$}\\{\large \textsc{An innocent mathematicians guide to lean}}}
 \author{Andreas Bøgh Poulsen, studienummer: 201805425}
 
 \begin{document}
@@ -134,8 +147,10 @@
 \section*{Introduction}
 The following is a project, in which I try to learn how to do formalized mathematics, using Lean as my proof checker. This document is a report on my learnings, and is intended as a resource for other mathematicians, who may wish to learn about Lean. 
 
-\section{Martin-Löf dependent type theory}
-Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system. If you're only interested in learning Lean, feel free to skip this section.
+\section{Martin-Löf dependent type theory}\label{sec:tt}
+Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system.
+
+We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean have made, makes sense. If you're only interested in learning Lean, feel free to skip this section.
 
 \subsection{Inference rules}
 A Inference rule is on the form
@@ -171,7 +186,7 @@ Everything is read the same, except $P : \Prop$ is read ``$P$ has type $\Prop$''
   \end{enumerate}
 \end{definition}
 
-As we would expect, there are axioms making this an equivalence relation:
+As we would expect, there are axioms making judgemental equality an equivalence relation:
 
 \begin{align*}
   &\begin{prooftree}
@@ -202,13 +217,22 @@ We need to introduce dependent types as well as functions, before we can get goi
 
   \begin{center}
     \begin{prooftree}
-      \hypo{\Gamma \vdash A \text{ type}}
-      \infer1{\Gamma a : A \vdash a : A}
+      \hypo{\Gamma, x : A \vdash B(x) \text{ type}}
+      \infer1{\Gamma, x : A, b : B(x) \vdash b : B(x)}
     \end{prooftree}
   \end{center}
 
+  When $B(x)$ is independent of $x$ we simply write $B$. In that case:
+  \begin{center}
+    \begin{prooftree}
+      \hypo{\Gamma \vdash B \text{ type}}
+      \infer1{\Gamma, b : B \vdash b : B}
+    \end{prooftree}
+  \end{center}
 
-  A \textit{section} of a dependent type $B(x)$ is an element $\Gamma, x : A \vdash b(x) : B(x)$.
+  Every element has a unique type, up to judgemental equality.
+
+  A \textit{section} of a dependent type $B(x)$ is an element $\Gamma, x : A \vdash b : B(x)$.
 \end{definition}
 
 Note that for different $x : A$ in the context, $B(x)$ may be different type. Using dependent types we can introduce functions:
@@ -244,7 +268,7 @@ Note that for different $x : A$ in the context, $B(x)$ may be different type. Us
 
 \end{definition}
 
-\textit{Remark} Not all types are dependent. If $B(x)$ is independent of $x$ we will just write $B$ and functions as $A \to B$. This arrow binds stronger that $\Pi$, so that $\Pi_{a:A}\, B \to C$ is read as $\Pi_{a:A}\, (A \to B)$.
+\textit{Remark.} Not all types are dependent. If $B(x)$ is independent of $x$ we will just write functions as $A \to B$. This arrow binds stronger that $\Pi$, so that $\Pi_{a:A}\, B \to C$ is read as $\Pi_{a:A}\, (A \to B)$.
 
 \subsection{Logic in type theory}
 We now have the building blocks to start formulating usual logic in dependent type theory. The basic idea is to interpret types as propositions. A proof of a proposition corresponds to an element of a type. Thus a false proposition is a type without any elements, and a true proposition is a type with at least one element. We can introduce canonical false and true propositions:
@@ -457,15 +481,15 @@ The first three rules govern the construction of natural numbers, and the next r
 All these inference rules are quite heavy. Let's introduce some lighter notation:
 
 \begin{lstlisting}[mathescape=true]
-  type $\vdash$ $\N$ :=
+  type $\vdash$ $\N$
   | 0$_\N$ : $\N$
   | succ$_\N$ : $\N \to \N$
 \end{lstlisting}
 
-Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n)\] We can similarly define
+Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n).\] For a more thorough derivation of the induction principle, see section~\ref{sec:ind} in the appendix. We can similarly define
 
 \begin{lstlisting}[mathescape=true]
-  type $\vdash$ A$\lor$B :=
+  type $\vdash$ A$\lor$B
   | $\iota_{1}$ : A $\to$ A$\lor$B
   | $\iota_{2}$ : B $\to$ A$\lor$B
 \end{lstlisting}
@@ -515,7 +539,7 @@ To get past both of these problem, we introduce a type of equality:
 \begin{definition}
   The type of equality is given by
 \begin{lstlisting}[mathescape=true]
-  type (a b : A) $\vdash$ $a=_{A}b$ :=
+  type (a b : A) $\vdash$ $a=_{A}b$
   | refl : $\Pi_{x:A}$ x$=_{A}$x
 \end{lstlisting}
   with derived induction principle  
@@ -562,8 +586,8 @@ We can use this equality to prove the things I mentioned earlier: $0_{\N} \neq s
 \begin{definition} Addition by pattern matching
 \begin{lstlisting}[mathescape=true]
   def add : $\N \to \N \to \N$
-  | 0      , n := n
-  | succ(m), n := succ$_{\N}$(add(m, n))
+  | 0       := id
+  | succ(m) := succ$_{\N}$ $\circ$ add(m)
 \end{lstlisting}
 \end{definition}
 
@@ -592,12 +616,12 @@ Note that the last line proves $add(succ(n), 0) = succ(add(n, 0)) = succ(n)$, wh
   | succ(m), n := fun_eq( add(m, succ(n))
                         , succ(add(m, n))
                         , succ
-                        , succ_add)
+                        , succ_add(m, n))
 \end{lstlisting}~
 \end{proof}
 
 Since $add(succ(m), n) \doteq succ(add(m, n))$, this lemma states that $add(succ(m), n) = add(m, succ(n))$. Together, we have
-\begin{theorem}
+\begin{theorem}\label{thm:add_comm}
   Addition is commutative
 \end{theorem}
 \begin{proof}~
@@ -618,7 +642,7 @@ def add_comm : $\Pi_{m, n : \N}\, add(m, n) = add(n, m)$
 \end{proof}
 
 \subsection{Higher order types}
-I promised to prove $0 \neq succ(n)$, but this is surprisingly hard. At least, it requires a little bit more machinery. Namely, the concept of higher order types, or functions that produces types. We have actually already seen them, $=_{A}$ is example of a higher order type. We can see $=_{A}$ as a function $A \to A \to \mathit{Type}$, where $\mathit{Type}$ is the type of types. Does that even make sense? We'll talk more about it in the next section, but for now, we'll just assume that every type is itself an element of type $\mathit{Type}$.
+I promised to prove $0 \neq succ(n)$, but this is surprisingly hard. At least, it requires a little bit more machinery. Namely, the concept of higher order types, or functions that produces types. We have actually already seen them, $=_{A}$ is example of a higher order type. Remember for any $a, b : A$, $a =_{A} b$ is a type, so we can see $=_{A}$ as a function $A \to A \to \mathit{Type}$, where $\mathit{Type}$ is the type of types. Does that even make sense? We'll talk more about it in the next section, but for now, we'll just assume that every type is itself an element of type $\mathit{Type}$.
 
 This enables us to produce functions such as
 
@@ -630,20 +654,22 @@ def nat_equals : $\N \to \N \to \Type$
 | succ(n), succ(m) := nat_equals(n, m)
 \end{lstlisting}
 
-which is exactly what we need. Remember, that $0 \neq succ(n) \doteq \neg(0 = succ(n)) \doteq (0 = succ(n)) \to \emptyset$. Thus we have:
+which is exactly what we need to prove $0 \neq succ(n)$. Remember, that $0 \neq succ(n) \doteq \neg(0 = succ(n)) \doteq (0 = succ(n)) \to \emptyset$, so what we need to prove is this:
 
 \begin{theorem}\label{thm:zero_ne_succ}
   $0$ is the first element of $\N$, i.e. we have $\Pi_{n:\N} \neg(0 = succ(n))$.
 \end{theorem}
 \begin{proof}~
-  We interpret \lstinline{$\bullet$ : nat_equals(0, 0)}, since \lstinline{nat_equals(0, 0) $\doteq$ $\mathbf 1$}. Then, using the assumption $0 = succ(n)$, we rewrite the last $0$ in that type, to obtain an element of type \lstinline{nat_equals(0, succ(n))}.
+  Given $n : \N$, we want to prove $0 = succ(n) \to \emptyset$, so we assume $0 = succ(n)$ and will try to produce an element of the empty type. To do this, we interpret \lstinline{$\bullet$ : nat_equals(0, 0)}, since \lstinline{nat_equals(0, 0) $\doteq$ $\mathbf 1$}. Then, using the assumption $0 = succ(n)$, we can rewrite the last $0$ in that type, to obtain an element of type \lstinline{nat_equals(0, succ(n))}, which is judgementally equal to $\emptyset$.
 
 \begin{lstlisting}[mathescape=true]
 def zero_ne_succ : $\Pi_{n : \N} (0 = succ(n)) \to nat\_equals(0, succ(n))$
 | n, h := ind$_{=}$(0, $\bullet$, succ(n), h)
 \end{lstlisting}
-  And this is our desired function, since \lstinline{nat_equals(0, succ(n)) $\doteq\;$ $\emptyset$}.
+  And this is our desired function.
 \end{proof}
+
+\textit{Remark.} It's surprising that our types seem to have so much structure, that equality is transitive and the natural numbers satisfy the Peano axioms without us ever mentioning them in the definition. This is a consequence of the derived induction principle, which forces the types to be ``free'' in some sense. Thus the natural numbers automatically becomes the free monoid on one generator, which is a model of the Peano axioms.
 
 \subsection{Propositions as some types and universes}
 So far, we've assumed that there is no difference between propositions and types. However, this view doesn't quite capture what a proposition is. To illustrate, let's define the existential quantifier, also known as a dependent pair:
@@ -652,7 +678,7 @@ So far, we've assumed that there is no difference between propositions and types
   A sigma type/dependent pair is the type of pairs $(a, b(a))$, where the second entry is allowed to depend on the first:
 
 \begin{lstlisting}
-type P : A $\to$ Type $\vdash$ $\Sigma_{a:A} P(a)$
+type (P : A $\to$ Type) $\vdash$ $\Sigma_{a:A} P(a)$
 | intro$_{\Sigma}$ : $\Pi_{a:A}\, B(a) \to \Sigma_{a:A} B(a)$
 \end{lstlisting}
 
@@ -668,7 +694,7 @@ It states that I can prove $\Sigma_{a:A}B(a)$ by exhibiting an element of type $
 \begin{theorem}
   The $\Sigma$ type has projection functions of the following type
 \begin{lstlisting}
-p$_{1}$ : $\Sigma_{a:A} B(a) \to A$
+p$_{1}$ : $(\Sigma_{a:A} B(a)) \to A$
 p$_{2}$ : $\Pi_{z : \Sigma_{a:A} B(a)} B(p_{1}(z))$
 \end{lstlisting}
 \end{theorem}
@@ -681,13 +707,13 @@ p$_{2}$(z) := ind$_{\Sigma}$($\la a \la x x$)
 ~
 \end{proof}
 
-The projection functions encode the axiom of choice. Given a proof of $\exists x: P(x)$, we can now pick an element $x$. This might be okay, if we only care about classical mathematics, but it would be good to have the option, whether or not to assume this axiom, instead of having it forced upon us.
+The projection functions encode the axiom of choice\footnote{Or at least, they are equivalent to the axiom of choice. For more details, see section~\ref{ssec:sets}}. Given a proof of $\exists x: P(x)$, we can now pick an element $x$ satisfying $P(x)$. This might be okay, if we only care about classical mathematics, but it would be good to have the option, whether or not to assume this axiom, instead of having it forced upon us.
 
 The insight that solves this, is that a proposition doesn't have any ``content'', it is simply true or false. That is, once we have proved $\exists x: P(x)$, it should forget everything that went into the proof, and just remember the fact, that it is true. In other words, the type of a proposition should either be empty, or contain a single element.
 
 This immediately tells us, that $\Sigma$ types are not propositions, since it potentially has many different elements. Disjunctions are also not propositions, since $\iota_{1}(a) \neq \iota_{2}(b)$. Natural number certainly aren't propositions, which is to expected, so what is a proposition? The types $\emptyset$ and $\mathbf 1$ are propositions, since they contain respectively 0 and 1 element. Also, if two types $A$ and $B$ are propositions, then the type $A \to B$ is a proposition, and $\Sigma_{a:A}B$ is also a proposition. In this case $\Sigma_{a:A}B$ is a conjunction, ``A and B.''
 
-We can recover propositionality for existentials and disjunctions, by introducing \textit{universes}. Everything has a type, including types themselves. We used this to introduce \lstinline{nat_equals : $\N \to \N \to \Type$}. I claimed that $\N$, $\emptyset$ and $\mathbf 1$ all have type $\Type$. What is the type then, of $\Type$? Russels paradox still works in type theory, so we can't have $\Type : \Type$.
+We can recover propositionality for existentials and disjunctions, by introducing \textit{universes}. Everything has a type, including types themselves. We used this to introduce the function \lstinline{nat_equals : $\N \to \N \to \Type$}, and I claimed that $\N$, $\emptyset$ and $\mathbf 1$ all have type $\Type$ (which isn't actually quite true). What is the type then, of $\Type$? Russels paradox still works in type theory, so we can't have $\Type : \Type$. The answer lies in the notion of \textit{universes}.
 
 \begin{definition}
   A \textit{universe} is a type, which has types as its elements.
@@ -696,7 +722,7 @@ We can recover propositionality for existentials and disjunctions, by introducin
 In our type theory, we introduce a tower of universes, indexed by the natural numbers. To stay consistent with Lean, we call them \textit{sorts}.
 
 \begin{definition}
-  For each $n \in \N$ we have a universe $\Sort n$. We also have $\Sort n : Sort(1+n)$.
+  For each $n \in \N$ we have a universe $\Sort n$. These universes contain each other as elements, so we have have $\Sort n : Sort(1+n)$.
 
   We define two special universes
   \begin{align*}
@@ -706,40 +732,42 @@ In our type theory, we introduce a tower of universes, indexed by the natural nu
 
   As an axiom, we have that elements of $\Prop$ are propositions:
   \[prop_{\bullet} : \Pi_{P:\Prop}\Pi_{x, y:P}\, x=_{P}y\]
+  and the induction principle on a $\Prop$ can only produce elements, whose type is in $\Prop$.
 \end{definition}
 
-$\Prop$ is the universe of propositions, and $\Type$ is the universe of regular types. The crucial this about universes, it that the induction principle of a type in universe $\Sort n$ can only produce types in that same universe. Thus, we can define the existential quantifier:
+$\Prop$ is the universe of propositions, and $\Type$ is the universe of regular types. The crucial thing about universes, is that it allows us to restrict what we can do with propositions. Thus, we can define the existential quantifier:
 
 \begin{definition}
   The existential quantifier is a $\Sigma$ type in $\Prop$:
 \begin{lstlisting}
-type P : A $\to$ Prop $\vdash$ $\exists_{a:A} P(a)$ : Prop
+type (P : A $\to$ Prop) $\vdash$ $\exists_{a:A} P(a)$ : Prop
 | intro$_{\exists}$ : $\Pi_{a:A}\, P(a) \to \exists_{a:A}\, P(a)$
 \end{lstlisting}
   with derived induction principle:
 \begin{lstlisting}
-ind$_{\exists}$ : $(\Pi_{a:A} \Pi_{x:B(a)}\, P($intro$_{\exists}(a, x))) \to \Pi_{z:\exists_{a:A}\,P(a)}\, P(z)$
+ind$_{\exists}$ : $(\Pi_{a:A} \Pi_{x:B(a)}\, P($intro$_{\exists}(a, x))) \to \Pi_{z:\exists_{a:A}\,B(a)}\, P(z)$
 \end{lstlisting}
+  where $P : \Prop$. 
 \end{definition}
 \textit{Remark.} We now have to annotate our type definitions with the universe they belong to. However, we haven't specified which universe $A$ belongs to. In that case, our definition is \textit{polymorphic} over universes, i.e. the definition applies for any $A : \Sort n$.
 
-Now, since $P(a)$ is always a $\Prop$, we cannot define $p_{1}$ like we could for $\Sigma$ types. However, if we wish to prove a $\Prop$, we have access to $a:A$ using the induction principle.
+Now, since $P(z)$ is always a $\Prop$, we cannot define $p_{1}$ like we could for $\Sigma$ types. However, if we wish to prove a $\Prop$, we have access to $a:A$ using the induction principle.
 
 We can define other propositions too:
 
 \begin{definition}
   The order relation on the natural numbers is given by
 \begin{lstlisting}
-type n, m : $\N$ $\vdash$ $n \leq m$ : Prop
+type (n, m : $\N$) $\vdash$ $n \leq m$ : Prop
 | zero_le : $\Pi_{n : \N}\, 0 \leq n$
-| succ_le : $\Pi_{n, m : \N} (n \leq m) \to (succ(n) \leq succ(m))$
+| succ_le : $\Pi_{n, m : \N} (n \leq m) \to$ (succ(n)$\leq$succ(m))
 \end{lstlisting}
 \end{definition}
 
 \begin{definition}
   We have the type of a number being even:
 \begin{lstlisting}
-type n : $\N$ $\vdash$ even(n) : Prop
+type (n : $\N$) $\vdash$ even(n) : Prop
 | zero_even : even(0)
 | step_even : $\Pi_{n:\N}$ even(n) $\to$ even(succ(succ(n)))
 \end{lstlisting}
@@ -786,23 +814,22 @@ We don't have, in general, the law of excluded middle, i.e. $A \lor (A \to \empt
 \begin{proof}
   Similarly to the proof of theorem~\ref{thm:zero_ne_succ}, we construct a dependent type
 \begin{lstlisting}
-def is_even : $\N \to Prop$
+def is_even : $\N \to \Prop$
 | 0, h             := $\mathbf 1$
 | succ(0), h       := $\emptyset$
 | succ(succ(n)), h := is_even(n, h)
 
 def ext : $\Pi_{n:\N}$ even(n) $\to$ is_even(n)
-| 0, h       := $\bullet$
-| succ(0), h := 
+| n, h := ind$_{even}$($\bullet$, $\la m \la h$ $\bullet$, n, h)
 
-def step : $\Pi_{n:\N}$even(n) $\to$ is_even(n) $\to$ is_even(succ(succ(n)))
-| n, h, b := b
+def if_even_eq_empty : $\Pi_{n:\N} \neg$even(n) $\to$ is_even(n) = $\emptyset$
+| n, h := 
 
-even_dec : $\Pi_{n:\N}$ $\to$ even(n)$\lor$$\neg$even(n)
+def even_dec : $\Pi_{n:\N}$ $\to$ even(n)$\lor$$\neg$even(n)
 | 0 := $\iota_{1}$(zero_even)
-| succ(0) := $\iota_2$($\la h$ ind$_{even}$(0, $\bullet$, succ(0), h))
-| succ(succ(n)) := ind$_\lor$( $\iota_1(\la h$ step_even(n, h))
-                       , $\iota_2(\la h$ )
+| succ(0) := $\iota_2$($\la h$ ext(succ(0), h))
+| succ(succ(n)) := ind$_\lor$( $\la h \iota_1$(step_even(n, h))
+                       , $\la x \iota_2$()
                        , even_dec(n))
 \end{lstlisting}
 \end{proof}
@@ -812,7 +839,588 @@ even_dec : $\Pi_{n:\N}$ $\to$ even(n)$\lor$$\neg$even(n)
 
 
 \section{Mathematics in type theory and Lean}
+We saw in the last chapter, that working in fully formal type theory was too cumbersome, so we gradually introduced shorter notation. However, it became dificult to figure out the types of terms during proofs. If we were to write out all the types, the proof would drown in type annotations. How can we remedy this situation?
+
+We can introduce a computer. This computer can derive all the information we leave out, and show it to us when we want it. It can also check for us, that we only perform allowed operations. Thus it can check the correctness of our proofs.
+
+There are many such computer programs, the most prominent of which are Coq, Agda, Isabelle and Lean. I run the risk of upsetting a lot of people when I say, that these are not that dissimilar. They are all built on a type theory similar to the one above, and they serve the same purpose. By learning one, it becomes possible to read, if not write, proofs in all of them. They do of course differ on some points: the community of Lean is generally more inclined to use classical logic in their proofs, where especially Agda and Isabelle stick closer to constructive logic.
+
+Lean is interesting for a couple of reasons: it has a large library of formalized mathematics called mathlib. This is in contrast to Coq, where a lot of work is spread among different projects, so you may have difficulties combining results from disparate projects. For example if you were to formalize topological groups in Lean, mathlib contains definitions of both topological spaces, continuity and groups. So it's straightforward to define a topological group as a group with a topology such that the groups operations are continous. The Coq standard library, mathcomp, on the other hand, contains neither groups nor topology, so you need to hunt after projects online, that formalize groups and topology. Lean has the advantage that documentation for the entire mathlib is centralized, so you only ever have to look in one place for you theorems and definitions.
+
+Second reason is, that Lean have proven itself to be capable of modern mathematics via the Liquid Tensor project \cite{LiquidTensor}. This seems to indicate, that Lean is powerful enough to tackle most of the theorems we may wish to formalize.
+
+Of course, the other provers have advantages. Coq and Agda are much better suited for doing Homotopy Type Theory than Lean\footnote{This is a consequence of defining equality to be a proposition. HoTT requires equality to have a richer structure.}  and higher categories. Also, if you're formalizing algorithms, the pervasive use of classical logic in mathlib may be an obstacle. Case in point: the division algorithm developed in this project cannot be executed on examples, because polynomials in Lean use classical logic in their definition. Coq and Agda are much more pure in this sense.
+
+When reading this section, it's good to have Lean session running, and paste the given code snippets into Lean, so you can follow along. If you don't want to spend a lot of time installing Lean, you can use online editor at \url{https://leanprover-community.github.io/lean-web-editor/}. Just remove the lines that are already there and replace them with your own.
+
+\subsection{Vernaculars and user interface}
+Lean is built on a very small core logic, called the Calculus of Constructions, which is similar to the pure type theory described in section~\ref{sec:tt}. Just like how we moved away from this core logic, Lean builds a \textit{vernacular} or another language around this core. This is the language that we are going to interact with.
+
+The syntax is slightly different from what we've seen so far, but the structure is the same. We can define natural numbers like so:
+
+\begin{definition}
+  The natural numbers in Lean
+\begin{minted}{lean}
+inductive N : Type
+| z : N
+| s : N → N
+\end{minted}
+\end{definition}
+
+and we can define addition like before:
+
+\begin{definition}
+  Addition in Lean
+\begin{minted}{lean}
+def N_add : N → N → N
+| z := id
+| (s n) := s ∘ (N_add n)
+\end{minted}
+\end{definition}
+
+Let's see how a proof of commutativity looks in Lean.
+
+\begin{theorem}
+  Addition is commutative, i.e. there is a function \mint{lean}{add_comm : }
+\end{theorem}
+\begin{proof}~
+  
+  \begin{minted}{lean}
+def N_add_zero : ∀n:N, N_add z n = N_add n z
+| z     := rfl
+| (s n) := congr_arg id (congr_arg s (N_add_zero n))
+
+def N_add_succ : ∀ n m:N, N_add n m.s = N_add n.s m
+| z     m := rfl
+| (s n) m := congr_arg s (N_add_succ n m)
+
+def N_add_comm : ∀ n m:N, N_add n m = N_add m n
+| z     m := N_add_zero m
+| (s n) m := eq.subst (eq.symm (N_add_succ m n))
+                      (congr_arg s (N_add_comm n m))
+\end{minted}
+\end{proof}
+
+We need the function \mintinline{lean}{congr_arg : (f : α → β) → (h : a = b) → f a = f b} and \mintinline{lean}{eq.symm : (a = b) → b = a} as well as \mintinline{lean}{eq.subst : a = b → P a → P b} to carry out the proof. Luckily, these are already in Lean, so we don't have to prove them from scratch. Also, Lean can infer a lot of information, that we previously had to provide. For example \mintinline{lean}{eq.symm}, which we had to provide both \mintinline{lean}{a} and \mintinline{lean}{b}, can now infer those two.
+
+You might notice that there are a couple of differences from the way we did the proof of theorem~\ref{thm:add_comm}. First, we need to use \mintinline{lean}{congr_arg id} in \mintinline{lean}{N_add_zero}, where I didn't before. I left it out, because we can define the identity function in such a way, that $id(x) \doteq x$ in which case it isn't nessecary. That isn't how it's defined in Lean, however, so we need it now. Also, \mintinline{lean}{N_add_comm} is shorter, because we use \mintinline{lean}{eq.subst}, which corresponds to $ind_{=}$ instead of transitivity. I find the proof by transitivity easier to read without type annotations. In Lean however, we can get type info anywhere, so this isn't a concern.
+
+\subsection{Tactic mode}
+Okay, so we can write proofs in Lean. But they're still kind of hard to write, even though all of our proofs so far have been pretty basic, because you need to piece the functions together in your head. Lean provides a different way of writing proofs, called \textit{tactic mode}. Here is the above proof, in tactic mode:
+
+\begin{minted}{lean}
+def N_add_comm' : ∀ n m:N, N_add n m = N_add m n
+| z     m := N_add_zero m
+| (s n) m := begin
+  rw N_add_succ m n,
+  exact congr_arg s (N_add_comm n m),
+end
+\end{minted}
+
+It's difficult to read on paper, so I encourage you to copy it into a Lean session. Tactic mode lives between \mintinline{lean}{begin ... end} and is a series of commands, that produce a proof. That is, everything in tactic mode translates into a proof in the normal style, but it's easier to iteratively build a proof in tactic mode.
+
+If you copy the code above into a Lean session and place your cursor somewhere between \lean{begin} and \lean{end} you will see Lean displaying some information to you. This is because in tactic mode, Lean is an \textit{interactive} theorem prover. It helps you orient yourself in the proof, by displaying your hypotheses and the statement you're working to prove.
+
+In tactic mode, you work in a \textit{context} of hypotheses, and work towards proving a \textit{goal}. You can use commands to change the goal. The \lean{rw h} command uses a hypothesis \lean{h : a = b} and substitutes every occurence of \lean{a} in the goal with \lean{b}. It is equivalent to \lean{eq.subst (eq.symm h) _} where is the underscore is replaced with the proof generated by the rest of the tactic block. That is, when you start the tactic block above, you are presented with
+\begin{minted}{lean}
+1 goal
+N_add_comm': ∀ (n m : N), N_add n m = N_add m n
+nm: N
+⊢ N_add n.s m = N_add m n.s
+\end{minted}
+
+after the first line (\lean{rw N_add_succ m n}), the goal changes to
+
+\begin{minted}{lean}
+⊢ N_add n.s m = N_add m.s n
+\end{minted}
+
+Next command is called \lean{exact}. It returns whatever is given to it. In other words, it closes the goal, by providing a term of the correct type. After that line, Lean should tell you, that the goal has been accomplished. This means the proof is done.
+
+We will do most of our proofs from now on in tactic mode. I'll exaplain new tactics as they arrive, but take a look at \cite{TacticRef} for a full overview.
+
+Just to get a feel for things, let's do another one of our previous proofs in tactic mode:
+
+\begin{minted}{lean}
+example (A B : Prop) : (¬ A) → (A ∨ B) → B := begin
+  intro na,
+  intro h,
+  cases h, { 
+    cases (na h),
+  }, {
+    exact h, 
+  }
+end
+\end{minted}
+
+Copy the proof into your own Lean session, and step through the proof. Can you figure out the structure? The \lean{intro} tactic introduces assumptions. Our proposition has two assumptions, so we introduce twice, to get \lean{na : ¬A} and \lean{h : A ∨ B}. Next, \lean{cases} on a hypothesis applies the induction principle on that hypothesis. In the case of disjunctions, the induction principle takes two functions, one for each case, and produces a proof. Thus, \lean{cases h} produces two new goals, one with \lean{h : A} and one with \lean{h : B}. In the first case we use the induction principle on \lean{false} to close the goal, and in the second we just use the given \lean{h : B}.
+
+\subsection{The library of mathematics, mathlib}
+We introduced our own definition of the natural numbers, but if we actually wanted to do something with them, we would have a lot of work ahead of us. We still haven't defined multiplication, nor proven that it's commutative, we have no concept of prime numbers. We would want to show that every number has a unique prime decomposition, we'd want to introduce greatest common divisor and Eulers totient function, there's a lot of foundational tools still missing. We could do it, and perhaps it would be a good exercise, but we don't have to.
+
+Lean has a large catalogue of mathematics called the mathlib. You can look up the documentation at {\footnotesize \url{https://leanprover-community.github.io/mathlib_docs/}}. Try searching for \lean{zmod.chinese_remainder}. It states that, assuming $m, n \in \Z$ are coprime, there is a ring isomorphism between $\Z/mn\Z$ and $\Z/m\Z \times \Z/n\Z$. You can click on most of the statement, to see the definition of $\Z/n\Z$ as a type, see the definition of \lean{coprime} as well as the definition of a ring isomorphism. It's a good way to explore the mathlib, but also a bit overwhelming. Let's work through a simple example together:
+
+{\color{red} Do an identity on the natural numbers using induction.}
+
+We'll gradually introduce more of the mathlib, as it becomes nessecary. You can get an overview of what is in the mathlib here: {\footnotesize \url{https://leanprover-community.github.io/mathlib-overview.html}}. Right now, think of your favorite part of undergraduate math, and check if it's in the mathlib.
+
+\subsection{Abstract structures}
+The type $\N$ seems to capture the natural numbers well, but most of mathematics doesn't work with concrete objects like natural numbers. More likely, we'll work with a group $G$ or a vector space $V$. How do we do that in Lean?
+
+We can introduce a type \lean{group G}, which acts as a proof that \lean{G} is a group. Then, the assumption ``let $G$ be a group'' can be said as ``let $G$ be a set and $g_{G}$ a be a proof that $G$ has a group structure''. This translates cleanly into Lean, for example \lean{theorem Z_univ (G : Type) (gs : group G) (g : G)  : ℤ →* G} stating that there is a group homomorphism from $\Z$ into any non-empty group (here \lean{G1 →* G2} is the type of group homomorphisms from \lean{G1} to \lean{G2}).
+
+So how what would this type \lean{group G} look like? Close to how mathematicians usually define groups: a group is a tuple $(G,\; \cdot : G \to G \to G,\;\;\; ^{-1} : G \to G)$ with the usual group axioms. In Lean, the group axioms are a part of the tuple:
+
+\begin{minted}{lean}
+@[class]
+structure group (G : Type) :=
+  (mul : G → G → G)
+  (mul_assoc : ∀g₁ g₂ g₃ : G, mul (mul g₁ g₂) g₃ = mul g₁ (mul g₂ g₃))
+  (one : G)
+  (inv : G → G)
+  (one_mul : ∀ g : G, mul one g = g)
+  (mul_one : ∀ g : G, mul g one = g)
+  (mul_inv : ∀ g : G, mul (inv g) g = one)
+\end{minted}
+
+\textit{Remark:} \lean{structure} is just a neater way of writing a tuple, intead of as a product of types. Also, if you look at the definition of \lean{group} in mathlib, you'll see a lot more going on. This is because Lean includes a lot of convenience functions in the definition as well. Feel free to ignore those.
+
+This tuple has everything we need to work with groups, but it becomes cumbersome to pass the assumption that $\Z$ is a group along to every lemma, that talks about groups. To solve this, Lean introduces \textit{type classes}, indicated by the \lean{@[class]} above. These lay in the background, and doesn't need to be passed along explicitly. An example is
+\begin{minted}{lean}
+lemma mul_right_inv {G : Type} [group G] (g : G) :
+  mul a (inv a) = one := begin
+    rw [←mul_left_inv (inv g), inv_eq_of_mul (mul_left_inv g)]
+  end
+\end{minted}
+Here the assumption that \lean{G} is a group is passed in square brackets and we can use it like so: \lean{mul_right_inv 2 : mul 2 (inv 2) = 1}. The group itself is written in curly brackets, which means that Lean infers that from context. Thus both the group and the proof that it is a group is inferred from context, so we don't have to write them explicitly.
+
+In addition to abbreviating notation, type classes can be automatically generated. For example, if $G$ is a group and $S$ is any type, the functions $S \to G$ have a natural pointwise group structure. This can be expressed in Lean as follows:
+
+\begin{minted}{lean}
+instance (G S : Type) [gs : group G] : group (S → G) := {
+  mul := λf g, λs, mul (f s) (g s),
+  mul_assoc := λf g h, begin apply funext, intro s, rw mul_assoc, end,
+  one := λ_, one,
+  inv := λf, λs, inv (f s),
+  one_mul := λg, begin apply funext, intro s, rw one_mul, end,
+  mul_one := λg, begin apply funext, intro s, rw mul_one, end ,
+  mul_inv := λg, begin apply funext, intro s, rw mul_inv, end,
+}
+\end{minted}
+
+This automatically gives us a group structure on \lean{S → ℤ} as well as on functions to any other group. 
+
+\subsection{Well-founded recursion and well-orders}
+If you know about computability theory, you might have noticed a flaw in our treatment of the natural numbers. We've only allowed primitive recursive functions, i.e. functions defined using induction in one variable. The Ackermann function is an example of a function, which is not primitively recursive:
+\begin{align*}
+  A(0, n) &= n + 1 \\
+  A(m + 1, 0) &= A(m, 1) \\
+  A(m + 1, n + 1) &= A(m, A(m + 1, n))
+\end{align*}
+Neither the first nor the second argument always decreases, so we cannot define $A$ by induction in either argument.
+
+The way we treat this in mathematics, is using well-orders. We define the function $A$, and show that every recursive call decreases the arguments with respect to some well-order.
+
+\begin{definition}
+  A well-order is a total order $\leq$, i.e. a reflexive, antisymmetric, transitive and total relation, on a set $S$ where every nonempty subset of $S$ has a least element. Formally:
+  \[\forall A \subseteq S : A \neq \varemptyset \implies \exists a \in A: \forall b \in A: a \leq b.\]
+\end{definition}
+
+The most well-known well-order is the usual order on the natural numbers. In the case of the Ackermann function $A$, the pair $(m, n)$ decreases lexicographically in each recursive call.
+
+\begin{proposition}
+  If $\leq$ is a well-order on $S$, then so is the lexicographic order $\leq_{lex}$ on $S^{n}$, given by $(s_{1}, \dots, s_{n}) \leq_{lex} (t_{1}, \dots, t_{n})$ if $s_{i} = t_{i}$ for $i=1, \dots, k$ and $s_{k} < t_{k}$ for some $k \in \N$.
+\end{proposition}
+\begin{proof}
+  The proof is by induction in $n$. If $n = 1$ we are done since $\leq$ is a well-order.
+
+  In the induction step, let $A \subseteq S^{n+1}$ and let $A' = \{(s_{1}, \dots, s_{n}) \mid (s_{1}, \dots, s_{n}, s_{n+1} \in A)\}$. By the induction hypothesis $A'$ has a least element $x'$. Let $X = \{(s_{1}, \dots, s_{n+1}) \mid (s_{1}, \dots, s_{n}) = x\}$. Now, let $x$ be the element of $X$ with the least final entry. Then $x$ is a least element of $A$.
+\end{proof}
+
+Now, the reason well-orders are good for recursive functions is the following:
+
+\begin{proposition}
+  Let $\leq$ be a well-order on $S$ and $\{a_{i}\}$ be a strictly decreasing sequence of elements in $S$. Then $a_{i}$ is a finite sequence. 
+\end{proposition}
+\begin{proof}
+  Viewing $\{a_{i}\}$ as a subset of $S$, well-ordering gives an $n \in \N$ such that $\forall m \geq n: a_{m} = a_{n}$. Thus $a_{i}$ stops at $n$.
+\end{proof}
+
+This is what enables general recursion. Since every time we call the Ackermann function, the arguments strictly decreases according to some well-order, the sequence of calls must be finite. Thus it is well-defined.
+
+This is all well and good, but how do we do this in Lean? It turns out, well-orders have a very nice constructive counterpart, which enables us to define well-founded recursion as an induction principle.
+
+\begin{definition}
+  Let $S$ be a type, $\lhd : S \to S \to \Prop$ be a relation and $x : S$. $x$ is \textit{accessible} if for every element $y \in S$ with $y \lhd x$, we have that $y$ is accessible. We write $acc_{\lhd} x$ to say that $x$ is accessible.
+
+  Formally: \[acc_{\lhd} x := \forall y \in S: y \lhd x \implies acc_{\lhd} y\]
+\end{definition}
+
+\begin{proposition}
+  Every $n \in \N$ is accessible with respect to the usual ordering relation $<$.
+\end{proposition}
+\begin{proof}
+  The proof is by strong induction. Since there is no number less than $0$, every element $n < 0$ is accessible. Thus $0$ is accessible.
+
+  Now, assume every $m < n$ is accessible. This is exactly the definition of $n$ being accessible. Thus $n$ is accessible.
+\end{proof}
+
+
+In Lean we define the type \lean{acc r : S → Prop} such that \lean{acc r x} is a proof that \lean{x} is accessible with respect to the relation \lean{r}.
+
+\begin{definition}
+  The type of accessible elements
+\begin{minted}{lean}
+inductive acc {S : Sort u} (r : S → S → Prop) : S → Prop
+| intro : ∀(s : S), (∀ (t : S), r t s → acc t) → acc s
+\end{minted}
+
+  This type has induction principle
+
+\begin{minted}{lean}
+acc.rec : (Π (s : S), (Π (t : S), r t s → acc r t)
+                      → (Π (t : S), r t s → P t) → P s)
+          → Π {x : S}, acc r x → P x
+\end{minted}
+\end{definition}
+
+There are a couple of new syntactic things going on here. First, the argument \lean{{S : Sort u}} in curly braces is an \textit{implicit} argument, which you don't have to supply, Lean infers it from context. Also, because the relation \lean{r} is to the left of the colon in first line, we don't have to supply it in the recursive references to \lean{acc}.
+
+Let's see that this formulation captures the same concept:
+
+\begin{theorem}
+  Let $\leq$ be a total order on a set $S$. Then $\leq$ is a well-order if and only if every element of $S$ is accessible w.r.t. $<$.
+\end{theorem}
+\begin{proof}
+  First, assume $\leq$ is a well-order, and assume for contradiction that not every element of $S$ is accessible. Let $A = \{x \in S \mid \neg acc_{<} x\}$ be the set of inaccessible elements. Since $\leq$ is a well-order, this set has a least element, say $x_{0}$. However, every element less than $x_{0}$ is accessible, which means $x_{0}$ is accessible, which is a contradiction.
+
+  On the other hand, assume every element of $S$ is accessible and let $A \subseteq S$ with $A \neq \emptyset$. We prove a slight variation of the desired statement; that for all $x \in S$, any subset $A \subseteq S$ containing $x$ must have a least element. We do this by induction in $x$.
+
+  The induction principle on $acc_{<}$ states, that if we, assuming every $y < x$ where $y$ is accessible and $P\, y$ holds, can prove that $P\, x$ holds, then $P\, s$ holds for every accessible $s \in S$. Thus, let $s \in S$ and assume that every subset containing a $t < s$ has a least element. Let $A \subseteq S$ be a subset with $s \in A$. Then, consider $A' = \{s' \in A \mid s' < s\}$. We have two cases: if $A' = \varemptyset$ then $s$ is a least element of $A$. Otherwise, $A'$ has a least element $s_{0}$, since it contains an element strictly less than $s$. Then this $s_{0}$ is also a least element of $A$. Thus $A$ has a least element.
+
+  Thus, every set $A \subseteq S$ containing an accessible element has a least element. Since $A$ is nonempty and every element in $S$ is accessible, $A$ has a least element.
+\end{proof}
+
+That last implication might be hard to wrap your head around, so here it is in Lean:
+
+\begin{minted}{lean}
+lemma acc_has_min {S : Type} (r : S → S → Prop) (wf : ∀s:S, acc r s)
+  (A : set S) (h : A.nonempty) : ∃s₀ ∈ A, ∀ x ∈ A, ¬ r x s₀ := begin
+    rcases h with ⟨ a, ha ⟩,
+    refine (acc.rec _ (wf a)) ha,
+    intros x acc_x H hx,
+    let A' := {s' ∈ A | r s' x},
+    cases set.eq_empty_or_nonempty A', {
+      existsi x,
+      existsi hx,
+      intros x' hx' nax',
+      have x'_in_A' : x' ∈ A' := ⟨ hx', nax' ⟩,
+      rw h at x'_in_A',
+      exact set.not_mem_empty x' x'_in_A',
+    }, {
+      rcases h with ⟨ t, ht ⟩,
+      have rtx : r t x := ht.2,
+      have t_in_A : t ∈ A := set.mem_of_subset_of_mem
+                                (set.sep_subset _ _) ht,
+      exact H t rtx t_in_A,
+    }
+  end
+\end{minted}
+
+Now we have everything we need to do well-founded recursion. We define a quick wrapper around the induction on \lean{acc}:
+
+\begin{minted}{lean}
+variables {S : Type} {C : S → Type} {r : S → S → Prop}
+
+def fix (F : Πx, (Πy, r y x → C y) → C x)
+        (s : S) (h : acc r s) : C s :=
+  acc.rec (λx' _ ih, F x' ih) h
+\end{minted}
+
+Using this, we can define the Ackermann function as such:
+
+\begin{minted}{lean}
+def ack_aux : Π (p1 : ℕ ×ₗ ℕ) (h : Π (p2 : ℕ ×ₗ ℕ),
+                                   p2 < p1 → ℕ ×ₗ ℕ), ℕ ×ₗ ℕ
+| ⟨ 0  , n   ⟩ _ := (0, n+1)
+| ⟨ m+1, 0   ⟩ h := h (m, 1) sorry
+| ⟨ m+1, n+1 ⟩ h := h (m, (h (m+1, n) sorry).snd) sorry
+
+def ack (p : ℕ × ℕ) : ℕ := (fix ack_aux p ((prod.lex_wf
+                                            nat.lt_wf
+                                            nat.lt_wf).apply p)).snd
+\end{minted}
+
+\textit{Remark:} \lean{ℕ ×ₗ ℕ} denotes the product ordered by the lexicographic order. This is because the usual order on the product is the pointwise order, which is not a total order.
+
+\textit{Remark:} The mathlib has remarkably few lemmas on the lexicographic order on products, which is why this definition uses \lean{sorry} wherever we have to prove that the recursive call is decreasing. It would be a good exercise to implement the needed lemmas:
+
+\begin{minted}{lean}
+lemma l1 (m : ℕ) : to_lex (m, 1) < to_lex (m + 1, 0) :=
+begin admit, end
+lemma l2 (m n : ℕ) : to_lex (m + 1, n) < to_lex (m + 1, n + 1) :=
+begin admit, end
+lemma l3 (m n x: ℕ) : to_lex (m, x) < to_lex (m + 1, n + 1) :=
+begin admit, end
+\end{minted}
+
+You're going to need the lemmas \lean{prod.lex.lt_iff} and \lean{nat.lt_succ_self} from mathlib.
+
+\subsection{Well-founded recursion using the equation compiler}
+Now that the mathematical foundation for well-founded recursion is in place, we would like a better notation. Lean can actually express the Ackermann function directly:
+
+\begin{minted}{lean}
+def ack2 : ℕ → ℕ → ℕ
+| 0     n     := n+1
+| (m+1) 0     := ack2 m 1
+| (m+1) (n+1) := ack2 m (ack2 (m+1) n)
+\end{minted}
+We don't need to supply the well-order since Lean knows there is a well-order on \lean{ℕ × ℕ} namely the lexicographic order, and it can even prove that the recursive calls are decreasing on its own. This means we can also express addition more naturally:
+
+\begin{minted}{lean}
+def add : ℕ → ℕ → ℕ
+| 0     n := n
+| (m+1) n := (add m n) + 1
+\end{minted}
+
+\subsection{Sets}\label{ssec:sets}
+So far, we've used types to fill the role of sets. However, that's not always practical. We don't have subtypes, so there is no way to express the concept of a subset. This means we can't talk about partitions or restrict a function to a subset. How would we talk about these things in Lean?
+
+The answer is simple. The statement $a \in A$ is a proposition, so we simply define
+\begin{minted}{lean}
+def set (α : Type) := α → Prop
+def mem (α : Type) (S : set α) (a : α) : Prop := S a
+\end{minted}
+so the set $A$ is actually a predicate, deciding whether any element $a$ is in $A$ or not. We can define notation, so that \lean{a ∈ S := S a} and there we go. A subset is simply a set, for which every element is conatined in the superset
+\begin{minted}{lean}
+def subset (α : Type) (S T : set α) : Prop := ∀(a : α), a ∈ S → a ∈ T
+\end{minted}
+By unfolding definitions, this is actually equal to \lean{∀(a : α), S a → T a}. We can define unions as \lean{S ∪ T := ∀(a:α), S a ∨ T a} and similarly intersections.
+
+Finally, we can define the type of elements in a set, which would act as a subtype of the type \lean{α}:
+
+\begin{minted}{lean}
+structure subtype {α : Type} (S : set α) : Type :=
+(val : α)
+(property : val ∈ S)
+\end{minted}
+
+We can use these constructions to give the axiom of choice for sigma-types, in a slightly unusual formulation: Let $\sim$ be a relation between two types $\alpha$ and $\beta$ and assume $\forall a : \alpha, \exists b : \beta, a \sim b$. Then there exists a function $f : \alpha \to \beta$ such that $\forall a : \alpha, a \sim f(a)$.
+
+\begin{minted}{lean}
+def AC {α β : Type} {r : α → β → Prop}
+  (H : ∀(a : α), psigma (λb, r a b)) :
+  psigma (λ(f : α → β), ∀(a : α), r a (f a))
+  ⟨ λa, (H a).fst, λa, (H a).snd ⟩
+\end{minted}
+\textit{Remark:} for reasons unknown to me, the definition of sigma-types in Lean forbid propositions as the second element. Instead, we use \lean{psigma}, which allows them. \lean{psigma (β : α → Type)} means \lean{Σa:α, β(a)}.
+
+The way turn this into the usual axiom of choice is by letting \lean{A := subtype (set α)}, \lean{B := α} and the relation \lean{a ~ b} denote \lean{b ∈ a}. Then, assuming every set in \lean{A} is nonempty, we have that every \lean{a ∈ A} is in relation to some \lean{b : B}, so \lean{AC} gives us a choice function.
+
+
 
 \section{Gröbner bases as an extended example}
+In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal'' informal proofs and the proofs in Lean, to get an understanding of the difference.
+
+We'll proceed as follows: first, we prove Dicksons lemma, which enables us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they form well-orders. Then we define Gröbner bases. Finally, we define the multivariate division algorithm, and prove its basic properties. Finally, we'll prove that division by a Gröbner basis gives 0 if and only if the polynomial is in the ideal generated by the Gröbner basis.
+
+\subsection{Dicksons lemma}
+Dicksons lemma is a sort of well-ordering axiom for $\N^{n}$.
+
+\begin{lemma}\label{lem:dickson}
+Let $n \in \N$ and $S \subseteq \N^{n}$ be a non-empty subset. Then there exists a finite set $V = \{x_{1}, \dots, x_{r}\} \subseteq S$ such that \[S \subseteq \bigcup_{i=1}^{r} x_{i} + \N^{n}.\]
+\end{lemma}
+\begin{proof}
+  The proof is by induction in $n$. If $n = 0$, we have there is only a single vector of length 0, the empty vector. Thus $\N^{0} = \{()\}$. In this case, we can choose $V = S$, which must be a finite set.
+
+  For the induction step, assume every subset $S' \subseteq \N^{n}$ has a finite subset giving a lower bound of $S'$, and let $S \subseteq \N^{n+1}$.
+
+  Now, let's define some notation. Define $t : \N^{n+1} \to \N^{n}$ given by $t((s_{1}, \dots, s_{n+1})) = (s_{2}, \dots, s_{n+1})$ to be the function removing the first entry of a vector. Let's also define $U(\{x_{1}, \dots, x_{r}\}) = \bigcup_{i=1}^{r} x_{i} + \N^{l}$ where $x_{i} \in \N^{l}$.
+
+  Let $S' = \{t(x) \mid x \in S\}$ be the set of vectors in $S$ where we remove the first entry. The induction hypothesis then gives us a finite set $v' = \{x'_{1}, \dots, x'_{r}\} \subseteq S'$ such that $S' \subseteq U(v')$.
+
+  Since $v' \subseteq S'$, we can find a finite set $v = \{x_{1}, \dots, x_{r}\} \subseteq S$ such that $v' = \{t(x) \mid x \in v\}$. Now, this $v$ may not be a lower bound of $S$, only of the last $n$ entries. So, let's try to extend $v$ to be a lower bound of the first entry as well.
+
+  We can define $M = max(\{s_{1} \mid s \in v\})$ and let $S_{\ge M} = \{s \in S \mid s_{1} \ge M\}$. Here, $s$ is a vector and $s_{1}$ denotes the first entry of $s$. Then we at least have $S_{\ge M} \subseteq U(v)$.
+
+  Now, for all $i = 1, \dots, M-1$ define $S_{i} = \{s \in S \mid s_{1} = i\}$, where again $s_{1}$ is the first entry of $s$, and $S_{i}' = \{t(s) \mid s \in S_{i}\}$. We then have $S = S_{\ge M} \cup \bigcup_{i=0}^{M-1} S_{i}$. By using the induction hypothesis on each of these $S_{i}$, we get finite sets $v_{i}' \subseteq S'_{i}$ such that $S_{i}' \subseteq U(v'_{i})$. Similarly to before, we can find $v_{i} \subseteq S_{i}$ such that $v'_{i} = \{t(x) \mid x \in v_{i}\}$. Then we have $S_{i} \subseteq U(v_{i})$.
+
+  Finally, let $V = v \cup \bigcup_{i=0}^{M-1}v_{i} \subseteq S$. To see that $S \subseteq U(V)$, let $s \in S$. Then either $s \in S_{\ge M}$ or $s \in S_{i}$ for some $i$. In the first case, there is a $s' \in v$ such that $s = s' + x$ for some $x \in \N^{n+1}$. Since $s' \in v \subseteq V$ we can use $s' \in V$ to prove $s \in U(V)$.
+
+  Similarly, if $s \in S_{i}$ for some $i$, we have $s \in U(v_{i})$, thus $s = s' + x$ for some $s' \in v_{i}$ and $x \in \N^{n+1}$. Since $s' \in v_{i} \subseteq V$, taking $s' \in V$ proves $s \in U(V)$, and this concludes the proof.
+\end{proof}
+
+When doing this proof in Lean, we prove an equivalent, but slightly different statement. First, $\N^{n}$ is interpreted as a vector of length $n$ with entries in $\N$, not as the cartesian product of $n$ copies of $\N$. Next, instead of writing $\bigcup_{i=0}^{r} x_{i} + \N^{n}$ we unfold this definition to
+\[\{s \in \N^{n} \mid \exists s' \in \{x_{1}, \dots, x_{r}\}, x \in \N^{n} : s = s' + x\}.\]
+
+But that is not all. Addition on vectors isn't defined in mathlib, so we need to define it and prove a bunch of lemmas, to show that it behaves well. The code for this is in the appendix, section~\ref{lean:vector_add_monoid}.
+
+
+
+\begin{lemma} Dicksons lemma in Lean
+
+  Let $n \in \N$ and $S \subseteq \N^{n}$. Then there exists a finite set $V \subseteq S$ such that \[S \subseteq \{s \in \N^{n} \mid \exists s' \in V, x \in \N^{n} : s = s' + x\}.\]
+
+\end{lemma}
+\begin{proof}
+  This proof is rather long, and we need to build
+
+  First, we define some notation:
+
+  \inputminted[firstline=84, lastline=89]{lean}{../src/dickson.lean}
+
+  This is so that \lean{upper_set V}$= \{s \in \N^{n} \mid \exists s' \in \{x_{1}, \dots, x_{r}\}, x \in \N^{n} : s = s' + x\}.$
+
+  Now, let's look at the proof from before. First, we have the base case, $n = 0$:
+  \inputminted[firstline=81, lastline=107]{lean}{../src/dickson.lean}
+
+  Second, there was a step where we used the axiom of choice, do go from a finite set $v' \subseteq \N^{n}$ to a finite set $v \subset \N^{n+1}$ such that $t(v) = v'$. The proof that this is possible is called \lean{single_preimage}, and is in the appendix, section~\ref{lean:single_preimage}. Here, there is also a version of the axiom of choice, formulated using subtypes, called \lean{subtype_axiom_of_choice}, which we'll also need.
+
+  Third, we'll need some lemmas about how this \lean{upper_set} behaves. We'll need that $U(\varemptyset) = \varemptyset$:
+
+  \inputminted[firstline=109, lastline=116]{lean}{../src/dickson.lean}
+
+  and we'll need
+
+  \inputminted[firstline=148, lastline=175]{lean}{../src/dickson.lean}
+
+  Finally, we need that $S = S_{\ge M} \cup \bigcup_{i=0}^{M} S_{i}$:
+
+  \inputminted[firstline=118, lastline=146]{lean}{../src/dickson.lean}
+
+  With all that out of the way, here is the proof, with the same structure as the informal proof:
+
+  \inputminted[firstline=177]{lean}{../src/dickson.lean}
+  ~
+\end{proof}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\printbibliography
+
+
+\appendix
+\section{Inductively defined types and the induction principle}\label{sec:ind}
+Here, we'll go through the rules governing the definition of inductive datatypes and their derived induction principle. Usually, you don't need to worry about these details, as you can just ask Lean, but it's nice to have an overview. Recall that an inductive type is given by its constructors. Foe example, the natural numbers are given by:
+
+\begin{minted}{lean}
+inductive N : Type
+| z : N
+| s : N → N 
+\end{minted}
+
+Note, that the constructors can depend on the type, but their final result must be the type we're defining. There are some restrictions on how we're allowed to depend on the type we're defining. We say that \textit{non-positive} occurences of \lean{N} are forbidden. In the function type \lean{A → B}, we say that \lean{A} is in the negative position and \lean{B} is in the positive position. Looking at each argument for every constructor, if \lean{N} occurs in a function type, it must only ever occur in a positive position. Thus, the above is allowed, since \lean{N} never occurs in a function type in any argument. Similarly, the following constructors are allowed:
+\begin{minted}{lean}
+| s1 : N → N → N
+| s2 : (false → N) → N
+\end{minted}
+
+However, all of the following constructors are disallowed:
+
+\begin{minted}{lean}
+| s4 : (N → N) → N
+| s3 : (false → N → false) → N
+| s5 : (false → N → N) → N
+\end{minted}
+
+You might be able to see why this restriction is here: for non-propositional types, the induction principle forces the constructors to be injective. However, we can't have an injection $(\N \to \N) \to \N$ by Cantors diagonal argument. And even though technically the constructor \lean{s3 : (false → N → false) → N} won't pose this issue, since there is only a single function \lean{false → N → false}, proving this is non-trivial, so Lean forbids it.
+
+Also, the type definition must be monotone in universes. This means, for example in the product type:
+
+\begin{minted}{lean}
+universes u v
+inductive my_prod {A : Sort u} {B : Sort v} : A → B → Sort (max u v)
+| intro (a : A) (b : B) : my_prod a b
+\end{minted}
+
+when we take arguments from a certain universe, the resulting type must be in that same universe, or higher. Thus, when we accept two inputs, that may lie in their own universe, the resulting \lean{my_prod A B} must lie in the highest of the two universes, denoted by \lean{max u v}. This rule doesn't apply for types in \lean{Prop}, thus the following is allowed:
+
+\begin{minted}{lean}
+universes u v
+inductive my_prod {A : Sort u} {B : Sort v} : A → B → Sort 0
+| intro (a : A) (b : B ) : my_prod a b
+\end{minted}
+
+since \lean{Prop := Sort 0}.
+
+Let's move on to the induction principle. The induction principle, called the recursor in Lean, will be a dependent function, taking one argument for each constructor. In this case it looks likes this:
+\begin{minted}{lean}
+N.rec : Π {P : N → Sort l}, P z → (Π (n : N), P n → P (s n)) → Π (n : N), P n
+\end{minted}
+Each argument to the recursor is a function, taking the same arguments as the corresponding constructor, as well as the constructor taken on those arguments, and returning something of type \lean{P (c a..)} where \lean{c} is the constructor and \lean{a..} is the list of arguments for that constructor. If a constructor takes no arguments, as \lean{z}, the corresponding function is not a function, just a term of type \lean{P z}. The second argument has type \lean{(Π (n : N), P n → P (s n))}
+
+In the case of \lean{N} which lives in the universe \lean{Type}, \lean{P (c a..)} can live in any universe. However, when we're working with types in \lean{Prop}, things are a little more complicated.
+
+Usually, when recursing over a type \lean{T : Prop}, the result must also lie in \lean{Prop}. In this case, \lean{T} only has a single element, so the result \lean{P t} cannot vary. Thus we simplify, so the return type is just \lean{P}.
+
+However, there is an exception when the type we're recursing over only has one constructor. The arguments to this constructor comes from three categories of types: they are either specific type defined previously, an abstract type indexed by the type or the type we're defining itself. For a contrived example, consider the type \lean{T l} of trees with nodes of type \lean{L} and integers at the nodes, whose left-most leaf is \lean{l : L}:
+\begin{minted}{lean}
+inductive T {L : Sort i} : L → Sort (max i 1)
+| leaf : Π l : L, T l
+| node {l1 l2 : L} : ℤ → T l1 → T l2 → T l1
+\end{minted}
+Here, \lean{Leaf} takes an argument of a indexed type \lean{L}, and \lean{Node} takes first an argument of a previously defined type, and then two arguments of type \lean{T}, the type we're defining.
+
+If the type has only a single constructor, and that constructor only takes arguments of index types or of \lean{Prop} types, then the recursor can return types in any universe. For example, in the case of conjunction:
+
+\begin{minted}{lean}
+inductive eq {α : Sort u} (a : α) : α → Prop
+| refl : eq a
+\end{minted}
+
+We have only one constructor, and that constructor takes an argument of an index type. Thus, the recursion principle on \lean{eq} is:
+\begin{minted}{lean}
+eq.rec :
+  ∀ {α : Sort u} {a : α} {P : α → Prop},
+  (α → P a) → ∀ {b : α}, eq a b → P b
+\end{minted}
+
+
+\section{Useful tactics}
+\begin{itemize}
+  \item[intro/intros]
+  \item[rw]
+  \item[have/let]
+  \item[apply/refine]
+  \item[split/left/right]
+  \item[cases]
+  \item[induction]
+\end{itemize}
+
+\section{A monoid structure on \lean{vector N n}}\label{lean:vector_add_monoid}
+\inputminted{lean}{../src/vector_add_monoid.lean}
+
+\section{A preimage of a finite set}\label{lean:single_preimage}
+
+If we're given a function $f : A \to B$ and a finite set $v' = \{x'_{1}, \dots, x'_{n}\} \subset B$ such that $v' \subseteq \Im f$, we can find a finite set $v \subseteq A$ such that $f(v) = v'$. This is done by considering each $x'_{i} \in v'$ and picking some $x_{i} \in f^{-1}(\{x'_{i}\})$. Then $v = \{x_{i} \mid i = 1, \dots, n\}$.
+
+When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$ and a set of elements from $\alpha$, $S : set \alpha$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v : finset \alpha$ so that $v \subseteq S$ and $v' = f(v)$.
+
+\inputminted[firstline=14, lastline=63]{lean}{../src/dickson.lean}
+
 
 \end{document}
