@@ -80,6 +80,21 @@ structure group (G : Type) :=
 
 open group
 
+@[derive [has_add, has_one]]
+def Z_alt := ℤ
+def to_Z_alt : ℤ → Z_alt := id 
+def of_Z_alt : Z_alt → ℤ := id 
+
+instance : group Z_alt := {
+  mul := λ m n, m + n + 1, 
+  mul_assoc := λ m n k, int.add_assoc m n k,
+  one := int.zero,
+  inv := λ m, int.neg m,
+  one_mul := λ m, int.zero_add m,
+  mul_one := λ m, int.add_zero m,
+  mul_inv := λ m, int.add_neg_self m,
+}
+
 instance (G S : Type*) [gs : group G] : group (S → G) := {
   mul := λf g, λs, mul (f s) (g s),
   mul_assoc := λf g h, begin apply funext, intro s, rw mul_assoc, end,
@@ -155,12 +170,12 @@ lemma l3 (m n x: ℕ) : to_lex (m, x) < to_lex (m + 1, n + 1) := begin
   simp,
   exact nat.lt_succ_self m,
 end
-def ack_aux : Π (p1 : ℕ ×ₗ ℕ) (h : Π (p2 : ℕ ×ₗ ℕ), p2 < p1 → ℕ ×ₗ ℕ), ℕ ×ₗ ℕ
-| ⟨ 0, n ⟩ _ := (0, n+1)
+def ack_aux : Π (p1 : ℕ ×ₗ ℕ) (h : Π (p2 : ℕ ×ₗ ℕ), p2 < p1 → ℕ), ℕ
+| ⟨ 0, n ⟩ _ := n+1
 | ⟨ m+1, 0 ⟩ h := h (m, 1) (l1 m)
-| ⟨ m+1, n+1 ⟩ h := h (m, (h (m+1, n) (l2 m n)).snd) (l3 m n _)
+| ⟨ m+1, n+1 ⟩ h := h (m, (h (m+1, n) (l2 m n))) (l3 m n _)
 
-def ack (p : ℕ × ℕ) : ℕ := (fix ack_aux p ((prod.lex_wf nat.lt_wf nat.lt_wf).apply p)).snd
+def ack (p : ℕ × ℕ) : ℕ := fix ack_aux p ((prod.lex_wf nat.lt_wf nat.lt_wf).apply p)
 
 def ack2 : ℕ → ℕ → ℕ
 | 0 n := n+1

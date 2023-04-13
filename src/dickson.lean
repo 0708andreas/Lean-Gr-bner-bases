@@ -66,8 +66,7 @@ lemma subtype_axiom_of_choice {α β : Type} {p : α → β → Prop}
   (h : ∀ (a : α), ∃ (b : β), p a b) : Π(a:α), {b // p a b} :=
   begin
     intro a,
-    specialize h a,
-    choose b hb using h,
+    choose b hb using h a,
     exact ⟨ b, hb ⟩,
   end
 
@@ -240,6 +239,18 @@ begin
       -- v_i using subtypes.
       -- Thus, vi is a function from fin M to finite sets b, s.t.
       -- b ⊆ Si i and Si i ⊆ upper_set b.
+      let vi'' := λ i, classical.some (t' i),
+      let vi_val'' := λ i, classical.some (single_preimage (Si i) (vi'' i) (vector.tail) (classical.some_spec (t' i)).1),
+      have vi_P'' : ∀ i, P (Si i) (vi_val'' i) := begin
+        intro i,
+        have P_v := classical.some_spec (single_preimage (Si i) (vi'' i) (vector.tail) (classical.some_spec (t' i)).1),
+        have P_v' := classical.some_spec (t' i),
+        rw P,
+        split,
+        exact P_v.1,
+        rw ←P_v.2 at P_v',
+        admit,
+      end,
       have vi' := @subtype_axiom_of_choice
                   (fin M)
                   (finset (vector ℕ n))
@@ -257,7 +268,7 @@ begin
         exact ⟨ b, begin
           split, {
             exact hb.1,
-          }, {
+          }, { 
             rw ←hb.2 at P_b'_right,
             refine lift_upperset i (Si i) b P_b'_right
               (λs hs, le_of_eq hs.2)

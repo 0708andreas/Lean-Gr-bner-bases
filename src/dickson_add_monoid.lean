@@ -38,9 +38,8 @@ def linear_equiv_fun_on_finite {α M : Type*} [fintype α] [add_comm_monoid M] :
   .. finsupp.equiv_fun_on_finite }
 
 theorem fin_to_N_equiv_fin_finto_N (n : ℕ) :
-  add_equiv  (fin n → ℕ) (fin n →₀ ℕ) := add_equiv.symm linear_equiv_fun_on_finite
+  (fin n → ℕ) ≃+ (fin n →₀ ℕ) := add_equiv.symm linear_equiv_fun_on_finite
 
--- Vi kan bruge finsupp.dom_congr til at få fin n →₀ ℕ ≃+ σ →₀ ℕ for σ ≃ fin n
 theorem vector_N_equiv_fin_fto_N (n : ℕ) :
   (vector ℕ n) ≃+ (fin n →₀ ℕ) :=
     add_equiv.trans (vector_N_equiv_fin_to_N n) (fin_to_N_equiv_fin_finto_N n)
@@ -49,10 +48,9 @@ theorem vector_N_equiv_finite_fto_N {σ : Type*} [f : finite σ] :
   (vector ℕ (nat.card σ)) ≃+ (σ →₀ ℕ) := begin
     rw finite_iff_exists_equiv_fin at f,
     choose n hn using f,
-    have e := (inhabited_of_nonempty hn).default,
+    have e := classical.choice hn,
     rw (nat.card_eq_of_equiv_fin e),
-    have requiv := (e.symm),
-    have r := @finsupp.dom_congr (fin n) σ ℕ _ requiv ,
+    have r := @finsupp.dom_congr (fin n) σ ℕ _ e.symm ,
     exact add_equiv.trans (vector_N_equiv_fin_fto_N n) r,
   end
 
@@ -72,32 +70,25 @@ theorem mv_dickson {σ : Type*} [decidable_eq σ] [finite σ] (S : set (σ →�
     existsi v,
     split, {
       intros x hx,
-      rw finset.mem_coe at hx,
-      rw finset.mem_image at hx,
+      rw [finset.mem_coe, finset.mem_image] at hx,
       rcases hx with ⟨ a, ⟨ ha, h⟩ ⟩,
       rw ←h,
       rw ←finset.mem_coe at ha,
       have hha := mem_of_mem_of_subset ha v'_sub_S',
       rw mem_image _ _ _ at hha,
       rcases hha with ⟨ b, ⟨ hb, h ⟩⟩,
-      rw ←h,
-      rw add_equiv.apply_symm_apply _ _,
+      rw [←h, add_equiv.apply_symm_apply _ _],
       exact hb,
     }, {
       intros s hs,
       let a := e.symm s,
       have ha : a ∈ S' := set.mem_image_of_mem _ hs,
-      have a_in_upper : a ∈ upper_set n v' := mem_of_mem_of_subset ha S'_sub_upper,
-      cases a_in_upper with x hx,
-      cases hx with x' h,
-      cases h with x'_in_v' h,
-      have e_h := congr (rfl : ⇑e= ⇑e) h,
-      rw ←add_eq_zip_add at e_h,
+      have a_in_upper : a ∈ upper_set v' := mem_of_mem_of_subset ha S'_sub_upper,
+      rcases a_in_upper with ⟨x, x', x'_in_v', h⟩,
+      have e_h := congr (rfl : ⇑e = ⇑e) h,
       rw ←add_equiv.to_fun_eq_coe at e_h,
       rw e.map_add' _ _ at e_h,
-      existsi (e.to_fun x),
-      existsi (e.to_fun x'),
-      existsi (finset.mem_image_of_mem (e.to_fun) x'_in_v'),
+      existsi [e.to_fun x, e.to_fun x', finset.mem_image_of_mem (e.to_fun) x'_in_v'],
       have s_eq := add_equiv.apply_symm_apply e s,
       rw ←add_equiv.to_fun_eq_coe at s_eq,
       rw s_eq at e_h,

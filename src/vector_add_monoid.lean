@@ -55,16 +55,11 @@ lemma add_zero {n : ℕ} (v : vector ℕ n) : v + 0 = v := begin
 end
 lemma cons_add_eq_add_cons {n : ℕ} (v1 v2 : vector ℕ n) (a b : ℕ) :
   (a ::ᵥ v1) + (b ::ᵥ v2) = (a + b) ::ᵥ (v1 + v2) := begin
-    rw add_eq_zip_add,
-    rw eq_cons_iff,
+    rw [add_eq_zip_add, eq_cons_iff],
     split, {
-      rw zip_with_head,
-      rw cons_head,
-      rw cons_head,
+      rw [zip_with_head, cons_head, cons_head],
     },{
-      rw zip_with_tail,
-      rw cons_tail,
-      rw cons_tail,
+      rw [zip_with_tail, cons_tail, cons_tail],
       refl,
     }
   end
@@ -77,8 +72,7 @@ lemma add_comm {n : ℕ} (v1 v2 : vector ℕ n) : v1 + v2 = v2 + v1 := begin
     rcases exists_eq_cons v2 with ⟨ y, ys, hy ⟩,
     rw [hx, hy],
     repeat {rw cons_add_eq_add_cons},
-    rw n_ih,
-    rw nat.add_comm,
+    rw [n_ih, nat.add_comm],
   }
 end
 

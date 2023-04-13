@@ -4,6 +4,7 @@ import data.nat.parity
 import tactic.linarith
 import tactic.norm_num
 
+
 def lg : ℕ → ℕ
 | 0 := 0
 | (x+1) := have (x+1) / 2 < (x+1), from nat.div_lt_self' x 0,

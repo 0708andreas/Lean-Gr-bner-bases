@@ -40,6 +40,7 @@
 \newcommand{\Sort}{\mathit{Sort\;}}
 \renewcommand{\Prop}{\mathit{Prop}}
 \DeclareMathOperator{\Arg}{Arg}
+\DeclareMathOperator{\IN}{IN}
 \newcommand{\la}[1]{\lambda{#1}.\,}
 
 
@@ -52,6 +53,7 @@
 \usepackage{minted}
 \usemintedstyle{tango}
 \setminted{fontsize=\footnotesize}
+\setminted{breaklines}
 \newcommand{\lean}[1]{\mintinline{lean}{#1}}
 
 \usepackage{fontspec}
@@ -150,7 +152,7 @@ The following is a project, in which I try to learn how to do formalized mathema
 \section{Martin-Löf dependent type theory}\label{sec:tt}
 Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system.
 
-We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean have made, makes sense. If you're only interested in learning Lean, feel free to skip this section.
+We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of inductive constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean have made, makes sense. If you're only interested in learning Lean, feel free to skip this section.
 
 \subsection{Inference rules}
 A Inference rule is on the form
@@ -853,8 +855,13 @@ Of course, the other provers have advantages. Coq and Agda are much better suite
 
 When reading this section, it's good to have Lean session running, and paste the given code snippets into Lean, so you can follow along. If you don't want to spend a lot of time installing Lean, you can use online editor at \url{https://leanprover-community.github.io/lean-web-editor/}. Just remove the lines that are already there and replace them with your own.
 
+\subsection{Learning Lean and the purpose of this section}
+This document is in no way a complete guide to theorem proving in Lean. To learn how to use Lean, I wholeheartedly recommend ``The Natural Number Game''\cite{natnumgame}. In it, you'll learn how to use tactic mode, how to structure a proof into lemmas and theorems, and how to apply previously proven facts in new proofs.
+
+This document is supposed to be a reference on topics I found difficult, when doing this project. Thus, it contains notes on using type aliases to steer type class resolution, the mathematical underpinnings of well-founded recursion, and more. It will not cover every problem you encounter, but I hope it will help you, when you try to apply Lean to your field of mathematics.
+
 \subsection{Vernaculars and user interface}
-Lean is built on a very small core logic, called the Calculus of Constructions, which is similar to the pure type theory described in section~\ref{sec:tt}. Just like how we moved away from this core logic, Lean builds a \textit{vernacular} or another language around this core. This is the language that we are going to interact with.
+Lean is built on a very small core logic, called the Calculus of Inductive Constructions, which is similar to the pure type theory described in section~\ref{sec:tt}. Just like how we moved away from this core logic, Lean builds a \textit{vernacular} or another language around this core. This is the language that we are going to interact with.
 
 The syntax is slightly different from what we've seen so far, but the structure is the same. We can define natural numbers like so:
 
@@ -881,7 +888,7 @@ def N_add : N → N → N
 Let's see how a proof of commutativity looks in Lean.
 
 \begin{theorem}
-  Addition is commutative, i.e. there is a function \mint{lean}{add_comm : }
+  Addition is commutative, i.e. there is a function \mint{lean}{add_comm : ∀ n m:N, N_add n m = N_add m n}
 \end{theorem}
 \begin{proof}~
   
@@ -905,55 +912,6 @@ We need the function \mintinline{lean}{congr_arg : (f : α → β) → (h : a = 
 
 You might notice that there are a couple of differences from the way we did the proof of theorem~\ref{thm:add_comm}. First, we need to use \mintinline{lean}{congr_arg id} in \mintinline{lean}{N_add_zero}, where I didn't before. I left it out, because we can define the identity function in such a way, that $id(x) \doteq x$ in which case it isn't nessecary. That isn't how it's defined in Lean, however, so we need it now. Also, \mintinline{lean}{N_add_comm} is shorter, because we use \mintinline{lean}{eq.subst}, which corresponds to $ind_{=}$ instead of transitivity. I find the proof by transitivity easier to read without type annotations. In Lean however, we can get type info anywhere, so this isn't a concern.
 
-\subsection{Tactic mode}
-Okay, so we can write proofs in Lean. But they're still kind of hard to write, even though all of our proofs so far have been pretty basic, because you need to piece the functions together in your head. Lean provides a different way of writing proofs, called \textit{tactic mode}. Here is the above proof, in tactic mode:
-
-\begin{minted}{lean}
-def N_add_comm' : ∀ n m:N, N_add n m = N_add m n
-| z     m := N_add_zero m
-| (s n) m := begin
-  rw N_add_succ m n,
-  exact congr_arg s (N_add_comm n m),
-end
-\end{minted}
-
-It's difficult to read on paper, so I encourage you to copy it into a Lean session. Tactic mode lives between \mintinline{lean}{begin ... end} and is a series of commands, that produce a proof. That is, everything in tactic mode translates into a proof in the normal style, but it's easier to iteratively build a proof in tactic mode.
-
-If you copy the code above into a Lean session and place your cursor somewhere between \lean{begin} and \lean{end} you will see Lean displaying some information to you. This is because in tactic mode, Lean is an \textit{interactive} theorem prover. It helps you orient yourself in the proof, by displaying your hypotheses and the statement you're working to prove.
-
-In tactic mode, you work in a \textit{context} of hypotheses, and work towards proving a \textit{goal}. You can use commands to change the goal. The \lean{rw h} command uses a hypothesis \lean{h : a = b} and substitutes every occurence of \lean{a} in the goal with \lean{b}. It is equivalent to \lean{eq.subst (eq.symm h) _} where is the underscore is replaced with the proof generated by the rest of the tactic block. That is, when you start the tactic block above, you are presented with
-\begin{minted}{lean}
-1 goal
-N_add_comm': ∀ (n m : N), N_add n m = N_add m n
-nm: N
-⊢ N_add n.s m = N_add m n.s
-\end{minted}
-
-after the first line (\lean{rw N_add_succ m n}), the goal changes to
-
-\begin{minted}{lean}
-⊢ N_add n.s m = N_add m.s n
-\end{minted}
-
-Next command is called \lean{exact}. It returns whatever is given to it. In other words, it closes the goal, by providing a term of the correct type. After that line, Lean should tell you, that the goal has been accomplished. This means the proof is done.
-
-We will do most of our proofs from now on in tactic mode. I'll exaplain new tactics as they arrive, but take a look at \cite{TacticRef} for a full overview.
-
-Just to get a feel for things, let's do another one of our previous proofs in tactic mode:
-
-\begin{minted}{lean}
-example (A B : Prop) : (¬ A) → (A ∨ B) → B := begin
-  intro na,
-  intro h,
-  cases h, { 
-    cases (na h),
-  }, {
-    exact h, 
-  }
-end
-\end{minted}
-
-Copy the proof into your own Lean session, and step through the proof. Can you figure out the structure? The \lean{intro} tactic introduces assumptions. Our proposition has two assumptions, so we introduce twice, to get \lean{na : ¬A} and \lean{h : A ∨ B}. Next, \lean{cases} on a hypothesis applies the induction principle on that hypothesis. In the case of disjunctions, the induction principle takes two functions, one for each case, and produces a proof. Thus, \lean{cases h} produces two new goals, one with \lean{h : A} and one with \lean{h : B}. In the first case we use the induction principle on \lean{false} to close the goal, and in the second we just use the given \lean{h : B}.
 
 \subsection{The library of mathematics, mathlib}
 We introduced our own definition of the natural numbers, but if we actually wanted to do something with them, we would have a lot of work ahead of us. We still haven't defined multiplication, nor proven that it's commutative, we have no concept of prime numbers. We would want to show that every number has a unique prime decomposition, we'd want to introduce greatest common divisor and Eulers totient function, there's a lot of foundational tools still missing. We could do it, and perhaps it would be a good exercise, but we don't have to.
@@ -964,10 +922,10 @@ Lean has a large catalogue of mathematics called the mathlib. You can look up th
 
 We'll gradually introduce more of the mathlib, as it becomes nessecary. You can get an overview of what is in the mathlib here: {\footnotesize \url{https://leanprover-community.github.io/mathlib-overview.html}}. Right now, think of your favorite part of undergraduate math, and check if it's in the mathlib.
 
-\subsection{Abstract structures}
+\subsection{Abstract structures as type classes}
 The type $\N$ seems to capture the natural numbers well, but most of mathematics doesn't work with concrete objects like natural numbers. More likely, we'll work with a group $G$ or a vector space $V$. How do we do that in Lean?
 
-We can introduce a type \lean{group G}, which acts as a proof that \lean{G} is a group. Then, the assumption ``let $G$ be a group'' can be said as ``let $G$ be a set and $g_{G}$ a be a proof that $G$ has a group structure''. This translates cleanly into Lean, for example \lean{theorem Z_univ (G : Type) (gs : group G) (g : G)  : ℤ →* G} stating that there is a group homomorphism from $\Z$ into any non-empty group (here \lean{G1 →* G2} is the type of group homomorphisms from \lean{G1} to \lean{G2}).
+We can introduce a type \lean{group G}, which acts as a proof that the type \lean{G} is a group. Then, the assumption ``let $G$ be a group'' can be said as ``let $G$ be a set and $g_{G}$ a be a proof that $G$ has a group structure''. This translates cleanly into Lean, for example \lean{theorem Z_univ (G : Type) (gs : group G) (g : G)  : ℤ →* G} stating that there is a group homomorphism from $\Z$ into any non-empty group (here \lean{G1 →* G2} is the type of group homomorphisms from \lean{G1} to \lean{G2}).
 
 So how what would this type \lean{group G} look like? Close to how mathematicians usually define groups: a group is a tuple $(G,\; \cdot : G \to G \to G,\;\;\; ^{-1} : G \to G)$ with the usual group axioms. In Lean, the group axioms are a part of the tuple:
 
@@ -1010,6 +968,53 @@ instance (G S : Type) [gs : group G] : group (S → G) := {
 
 This automatically gives us a group structure on \lean{S → ℤ} as well as on functions to any other group. 
 
+\subsubsection{Type classes for notation}
+Lean uses type classes to solve another problem: any given function can only have one type. Thus, if we defined \lean{add : N → N}, we cannot later use \lean{add} to mean addition on the rationals, reals or anything else. However, using type classes, we can define a class
+\begin{minted}{lean}
+@[class]
+structure has_add (A : Type) :=
+  (add : A → A → A)
+
+infixl ` + `:65  := has_add.add
+\end{minted}
+
+This defines a type class of types having a function defined on them called \lean{add}. Below, we define \lean{+} to be a left-associating infix operator, which means \lean{has_add.add}. Thus \lean{1 + 1 = has_add.add 1 1} by definition. The number \lean{65} indicates how strongly the operator binds, to make multiplication bind stronger than addition.
+
+Similarly, Lean defines \lean{has_mul (*), has_le (≤), has_subset (⊆)} and many more. Type classes can ``extend'' each other, so a group can be defined as something of class \lean{has_mul}, for which the group axioms hold. Take a look at how \lean{group} is defined in the mathlib. You might be surprised.
+
+\subsubsection{Type aliases}\label{sss:typealias}
+Since type classes are resolved automatically, sometimes you get an instance, that you don't want. Maybe you want the group structure on $\Z$ given by $m \star n := m + n + 1$. What do you do then?
+
+The answer is to define a type alias. This is a new name, that refer to the same type, like so:
+
+\begin{minted}{lean}
+def ℤ_alt := ℤ
+
+def to_Z_alt : ℤ → ℤ_alt := id
+def of_Z_alt : ℤ_alt → ℤ := id
+\end{minted}
+
+Now, \lean{ℤ_alt} does not have an instance of \lean{group}, so you're free to define your own. But, since \lean{ℤ} and \lean{ℤ_alt} are definitionally equal, we inherit every function defined on \lean{ℤ} already. For example:
+
+\begin{minted}{lean}
+instance : group ℤ_alt := {
+  mul := λ m n, int.add (int.add m n) 1,
+  ...
+}
+\end{minted}
+
+uses the addition already defined on \lean{ℤ}. However, since \lean{ℤ_alt} has no instances, we don't get the addition symbol. We can tell Lean to inherit some of the type classes from \lean{ℤ} like so:
+
+\begin{minted}{lean}
+@[derive [has_add, has_one]]
+def ℤ_alt := ℤ
+
+instance : group ℤ_alt := {
+  mul := λ m n, m + n + 1,
+  ...
+}
+\end{minted}
+
 \subsection{Well-founded recursion and well-orders}
 If you know about computability theory, you might have noticed a flaw in our treatment of the natural numbers. We've only allowed primitive recursive functions, i.e. functions defined using induction in one variable. The Ackermann function is an example of a function, which is not primitively recursive:
 \begin{align*}
@@ -1029,7 +1034,7 @@ The way we treat this in mathematics, is using well-orders. We define the functi
 The most well-known well-order is the usual order on the natural numbers. In the case of the Ackermann function $A$, the pair $(m, n)$ decreases lexicographically in each recursive call.
 
 \begin{proposition}
-  If $\leq$ is a well-order on $S$, then so is the lexicographic order $\leq_{lex}$ on $S^{n}$, given by $(s_{1}, \dots, s_{n}) \leq_{lex} (t_{1}, \dots, t_{n})$ if $s_{i} = t_{i}$ for $i=1, \dots, k$ and $s_{k} < t_{k}$ for some $k \in \N$.
+  If $\leq$ is a well-order on $S$, then so is the lexicographic order $\leq_{lex}$ on $S^{n}$, given by $(s_{1}, \dots, s_{n}) \leq_{lex} (t_{1}, \dots, t_{n})$ if either $(s_{1}, \dots, s_{n}) = (t_{1}, \dots, t_{n})$ or $s_{i} = t_{i}$ for $i=1, \dots, k$ and $s_{k} < t_{k}$ for some $k \in \N$.
 \end{proposition}
 \begin{proof}
   The proof is by induction in $n$. If $n = 1$ we are done since $\leq$ is a well-order.
@@ -1043,7 +1048,7 @@ Now, the reason well-orders are good for recursive functions is the following:
   Let $\leq$ be a well-order on $S$ and $\{a_{i}\}$ be a strictly decreasing sequence of elements in $S$. Then $a_{i}$ is a finite sequence. 
 \end{proposition}
 \begin{proof}
-  Viewing $\{a_{i}\}$ as a subset of $S$, well-ordering gives an $n \in \N$ such that $\forall m \geq n: a_{m} = a_{n}$. Thus $a_{i}$ stops at $n$.
+  Viewing $\{a_{i}\}$ as a subset of $S$, well-ordering gives an $n \in \N$ such that $\forall m \geq n: a_{m} = a_{n}$. Thus $a_{i}$ stops at $i = n$.
 \end{proof}
 
 This is what enables general recursion. Since every time we call the Ackermann function, the arguments strictly decreases according to some well-order, the sequence of calls must be finite. Thus it is well-defined.
@@ -1052,8 +1057,6 @@ This is all well and good, but how do we do this in Lean? It turns out, well-ord
 
 \begin{definition}
   Let $S$ be a type, $\lhd : S \to S \to \Prop$ be a relation and $x : S$. $x$ is \textit{accessible} if for every element $y \in S$ with $y \lhd x$, we have that $y$ is accessible. We write $acc_{\lhd} x$ to say that $x$ is accessible.
-
-  Formally: \[acc_{\lhd} x := \forall y \in S: y \lhd x \implies acc_{\lhd} y\]
 \end{definition}
 
 \begin{proposition}
@@ -1064,7 +1067,6 @@ This is all well and good, but how do we do this in Lean? It turns out, well-ord
 
   Now, assume every $m < n$ is accessible. This is exactly the definition of $n$ being accessible. Thus $n$ is accessible.
 \end{proof}
-
 
 In Lean we define the type \lean{acc r : S → Prop} such that \lean{acc r x} is a proof that \lean{x} is accessible with respect to the relation \lean{r}.
 
@@ -1084,7 +1086,7 @@ acc.rec : (Π (s : S), (Π (t : S), r t s → acc r t)
 \end{minted}
 \end{definition}
 
-There are a couple of new syntactic things going on here. First, the argument \lean{{S : Sort u}} in curly braces is an \textit{implicit} argument, which you don't have to supply, Lean infers it from context. Also, because the relation \lean{r} is to the left of the colon in first line, we don't have to supply it in the recursive references to \lean{acc}.
+Note that because the relation \lean{r} is given to the left of the colon in the first line, we don't have to supply it in the recursive references to \lean{acc}. In a sense, it is fixed throughout the definition, so we don't need to repeat it.
 
 Let's see that this formulation captures the same concept:
 
@@ -1096,7 +1098,7 @@ Let's see that this formulation captures the same concept:
 
   On the other hand, assume every element of $S$ is accessible and let $A \subseteq S$ with $A \neq \emptyset$. We prove a slight variation of the desired statement; that for all $x \in S$, any subset $A \subseteq S$ containing $x$ must have a least element. We do this by induction in $x$.
 
-  The induction principle on $acc_{<}$ states, that if we, assuming every $y < x$ where $y$ is accessible and $P\, y$ holds, can prove that $P\, x$ holds, then $P\, s$ holds for every accessible $s \in S$. Thus, let $s \in S$ and assume that every subset containing a $t < s$ has a least element. Let $A \subseteq S$ be a subset with $s \in A$. Then, consider $A' = \{s' \in A \mid s' < s\}$. We have two cases: if $A' = \varemptyset$ then $s$ is a least element of $A$. Otherwise, $A'$ has a least element $s_{0}$, since it contains an element strictly less than $s$. Then this $s_{0}$ is also a least element of $A$. Thus $A$ has a least element.
+  The induction principle on $acc_{<}$ states, that if we, assuming $P\,y$ holds for every $y < x$ where $y$ is accessible, can prove that $P\, x$ holds, then $P\, s$ holds for every accessible $s \in S$. Thus, let $s \in S$ and assume that every subset containing a $t < s$ has a least element. Let $A \subseteq S$ be a subset with $s \in A$. Then, consider $A' = \{s' \in A \mid s' < s\}$. We have two cases: if $A' = \varemptyset$ then $s$ is a least element of $A$. Otherwise, $A'$ has a least element $s_{0}$, since it contains an element strictly less than $s$. Then this $s_{0}$ is also a least element of $A$. Thus $A$ has a least element.
 
   Thus, every set $A \subseteq S$ containing an accessible element has a least element. Since $A$ is nonempty and every element in $S$ is accessible, $A$ has a least element.
 \end{proof}
@@ -1141,17 +1143,17 @@ Using this, we can define the Ackermann function as such:
 
 \begin{minted}{lean}
 def ack_aux : Π (p1 : ℕ ×ₗ ℕ) (h : Π (p2 : ℕ ×ₗ ℕ),
-                                   p2 < p1 → ℕ ×ₗ ℕ), ℕ ×ₗ ℕ
-| ⟨ 0  , n   ⟩ _ := (0, n+1)
+                                     (p2 < p1) → ℕ), ℕ
+| ⟨ 0  , n   ⟩ _ := n+1
 | ⟨ m+1, 0   ⟩ h := h (m, 1) sorry
-| ⟨ m+1, n+1 ⟩ h := h (m, (h (m+1, n) sorry).snd) sorry
+| ⟨ m+1, n+1 ⟩ h := h (m, (h (m+1, n) sorry)) sorry
 
-def ack (p : ℕ × ℕ) : ℕ := (fix ack_aux p ((prod.lex_wf
-                                            nat.lt_wf
-                                            nat.lt_wf).apply p)).snd
+def ack (p : ℕ × ℕ) : ℕ := fix ack_aux p ((prod.lex_wf
+                                           nat.lt_wf
+                                           nat.lt_wf).apply p)
 \end{minted}
 
-\textit{Remark:} \lean{ℕ ×ₗ ℕ} denotes the product ordered by the lexicographic order. This is because the usual order on the product is the pointwise order, which is not a total order.
+\textit{Remark:} \lean{ℕ ×ₗ ℕ} denotes the product ordered by the lexicographic order. This is because the default order on the product is the pointwise order, which is not a total order. See section~\ref{sss:typealias} about type aliases for more details.
 
 \textit{Remark:} The mathlib has remarkably few lemmas on the lexicographic order on products, which is why this definition uses \lean{sorry} wherever we have to prove that the recursive call is decreasing. It would be a good exercise to implement the needed lemmas:
 
@@ -1217,15 +1219,42 @@ def AC {α β : Type} {r : α → β → Prop}
 
 The way turn this into the usual axiom of choice is by letting \lean{A := subtype (set α)}, \lean{B := α} and the relation \lean{a ~ b} denote \lean{b ∈ a}. Then, assuming every set in \lean{A} is nonempty, we have that every \lean{a ∈ A} is in relation to some \lean{b : B}, so \lean{AC} gives us a choice function.
 
+\subsubsection{Notation for sets and subtypes}
+Lean defines special notation for sets, so our statements look a little more familiar. I haven't been able to find documentation for these notations, so here is a quick summary:
+
+\begin{minted}{lean}
+-- Let A : Type* and P : A → Prop
+{x : A | P x} := P : set A
+-- Let S : set A
+{x ∈ S | P x} := {x : A | x ∈ S ∧ P x}
+-- If you're looking for lemmas about sets of the form
+-- {x ∈ S | P x}, they're called 'sep' in mathlib
+-- F.ex. mem_sep
+
+-- Membership of a set is just the fact that the element
+-- satisfyes the defining property:
+x ∈ {a : A | P a} := {a : A | P a} x := P x
+
+-- Subtypes also have special syntax:
+{x // P x} := subtype P
+\end{minted}
+
+If you have an element of a set, say \mintinline{lean}{h : x ∈ {s ∈ S | P s}} and need to get \lean{h' : P x}, you can do that as follows:
+
+\begin{minted}{lean}
+-- Since x ∈ {s ∈ S | P s} := {s ∈ S | P s} x := (x ∈ S) ∧ P x we can do:
+h' := h.2
+\end{minted}
+
 
 
 \section{Gröbner bases as an extended example}
 In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal'' informal proofs and the proofs in Lean, to get an understanding of the difference.
 
-We'll proceed as follows: first, we prove Dicksons lemma, which enables us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they form well-orders. Then we define Gröbner bases. Finally, we define the multivariate division algorithm, and prove its basic properties. Finally, we'll prove that division by a Gröbner basis gives 0 if and only if the polynomial is in the ideal generated by the Gröbner basis.
+We'll proceed as follows: first, we prove Dicksons lemma, which enables us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases. Finally, we define the multivariate division algorithm, and prove its basic properties.
 
 \subsection{Dicksons lemma}
-Dicksons lemma is a sort of well-ordering axiom for $\N^{n}$.
+Dicksons lemma is a sort of well-ordering theorem for $\N^{n}$, but instead of finding a single least element, we find a finite collection of least elements.
 
 \begin{lemma}\label{lem:dickson}
 Let $n \in \N$ and $S \subseteq \N^{n}$ be a non-empty subset. Then there exists a finite set $V = \{x_{1}, \dots, x_{r}\} \subseteq S$ such that \[S \subseteq \bigcup_{i=1}^{r} x_{i} + \N^{n}.\]
@@ -1294,7 +1323,41 @@ But that is not all. Addition on vectors isn't defined in mathlib, so we need to
   ~
 \end{proof}
 
+Now, let's introduce multivariate polynomials. In Lean, they are defined in the mathlib as:
 
+\begin{minted}{lean}
+def mv_polynomial (σ : Type*) (R : Type*) [comm_semiring R] := add_monoid_algebra R (σ →₀ ℕ)
+\end{minted}
+
+Here, \lean{add_monoid_algebra} takes a semiring \lean{R} and an additive monoid \lean{G} and produces the type of multivariate polynomials with variables in \lean{G}, i.e. formal sums of elements of \lean{G} with coefficients from \lean{R}. It also defines multiplication to be the convolution, which is exactly what we want.
+
+The type \lean{σ →₀ ℕ} is finitely supported functions from a type \lean{σ} to \lean{ℕ}. Thus, elements of \lean{σ} acts as our variables, and the value in \lean{ℕ} under this function indicates the power of that variable. Note, that \lean{σ} doesn't have to be a finite type. In our cases, it will assume it to be finite.
+
+Since we assume \lean{σ} to be finite, we have a bijection between functions \lean{σ →₀ ℕ} and vectors of $\N$ with the same length as the cardinality of \lean{σ}. In the mathematical discussions, I will use vectors to decribe terms. For example, if $\sigma = \{x, y, z\}$ then $x^{2}y$ is denoted by $(2, 1, 0)$ in vector form and $\begin{pmatrix}x & y & z \\ 2 & 1 & 0\end{pmatrix}$ in function form. These are all referred to as \textit{terms}.
+
+In order to define Gröbner bases, we need the notion of a term order:
+
+\begin{definition}
+  Let $n \in \N$. Then a term order $\le$ is a total order on $\N^{n}$ such that
+  \begin{enumerate}
+    \item For all terms $v, v_{1}, v_{2} \in \N^{n}$ we have $v_{1} \le v_{2} \implies v + v_{1} \le v + v2$
+      \item For all terms $v \in \N^{n}$ we have $0 \le v$.
+  \end{enumerate}
+
+\end{definition}
+
+To carry this definition over to Lean, we need a type alias, see section~\ref{sss:typealias}, to avoid using the default pointwise ordering defined on functions.
+
+\inputminted[firstline=24, lastline=28]{lean}{../src/monomial_order.lean}
+
+\begin{definition}
+  Let $\le$ be a term order, and $f \in k[\sigma]$ be a non-zero multinomial over a field $k$. The inital term of $f$ is the largest term of $f$ under the order $\le$, and is denoted by $\IN(f)$.
+
+  In Lean:
+  \inputminted[firstline=78, lastline=82]{lean}{../src/monomial_order.lean}
+\end{definition}
+
+Note, that we have defined \lean{IN 0 := 0} even though usually we don't define the initial term of a polynomial with no terms. This is standard practice in Lean, to have the function defined on the entire domain. Similarly, the \lean{real.sqrt : ℝ → ℝ} is defined for negative reals, but theorems about square roots assume $x$ to be positive. That way, you don't have to supply a proof that your number is positive every time you take a square root, only when you want to prove something about it.
 
 
 
@@ -1377,7 +1440,7 @@ In the case of \lean{N} which lives in the universe \lean{Type}, \lean{P (c a..)
 
 Usually, when recursing over a type \lean{T : Prop}, the result must also lie in \lean{Prop}. In this case, \lean{T} only has a single element, so the result \lean{P t} cannot vary. Thus we simplify, so the return type is just \lean{P}.
 
-However, there is an exception when the type we're recursing over only has one constructor. The arguments to this constructor comes from three categories of types: they are either specific type defined previously, an abstract type indexed by the type or the type we're defining itself. For a contrived example, consider the type \lean{T l} of trees with nodes of type \lean{L} and integers at the nodes, whose left-most leaf is \lean{l : L}:
+However, there is an exception when the type we're recursing over only has one constructor. The arguments to this constructor comes from three categories of types: they are either specific type defined previously, an abstract type indexed by the type or the type we're defining itself. For a contrived example, consider the type \lean{T l} of trees with leaves of type \lean{L} and integers at the nodes, whose left-most leaf is \lean{l : L}:
 \begin{minted}{lean}
 inductive T {L : Sort i} : L → Sort (max i 1)
 | leaf : Π l : L, T l
@@ -1385,7 +1448,7 @@ inductive T {L : Sort i} : L → Sort (max i 1)
 \end{minted}
 Here, \lean{Leaf} takes an argument of a indexed type \lean{L}, and \lean{Node} takes first an argument of a previously defined type, and then two arguments of type \lean{T}, the type we're defining.
 
-If the type has only a single constructor, and that constructor only takes arguments of index types or of \lean{Prop} types, then the recursor can return types in any universe. For example, in the case of conjunction:
+If the type has only a single constructor, and that constructor only takes arguments of index types or of \lean{Prop} types, then the recursor can return types in any universe. For example, in the case of equality:
 
 \begin{minted}{lean}
 inductive eq {α : Sort u} (a : α) : α → Prop
@@ -1395,7 +1458,7 @@ inductive eq {α : Sort u} (a : α) : α → Prop
 We have only one constructor, and that constructor takes an argument of an index type. Thus, the recursion principle on \lean{eq} is:
 \begin{minted}{lean}
 eq.rec :
-  ∀ {α : Sort u} {a : α} {P : α → Prop},
+  ∀ {α : Sort u_1} {a : α} {P : α → Sort u_2},
   (α → P a) → ∀ {b : α}, eq a b → P b
 \end{minted}
 
@@ -1418,9 +1481,9 @@ eq.rec :
 
 If we're given a function $f : A \to B$ and a finite set $v' = \{x'_{1}, \dots, x'_{n}\} \subset B$ such that $v' \subseteq \Im f$, we can find a finite set $v \subseteq A$ such that $f(v) = v'$. This is done by considering each $x'_{i} \in v'$ and picking some $x_{i} \in f^{-1}(\{x'_{i}\})$. Then $v = \{x_{i} \mid i = 1, \dots, n\}$.
 
-When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$ and a set of elements from $\alpha$, $S : set \alpha$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v : finset \alpha$ so that $v \subseteq S$ and $v' = f(v)$.
+When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$ and a set of elements from $\alpha$, $S : \text{set}\, \alpha$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v : \text{finset}\, \alpha$ so that $v \subseteq S$ and $v' = f(v)$.
 
-\inputminted[firstline=14, lastline=63]{lean}{../src/dickson.lean}
+\inputminted[firstline=14, lastline=71]{lean}{../src/dickson.lean}
 
 
 \end{document}
