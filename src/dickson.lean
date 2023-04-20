@@ -232,58 +232,29 @@ begin
         (λs hs, hs.2) (λs hs, le_max' (image head v) (head s)
                         (mem_image_of_mem head hs)),
       
-      -- We use the induction hypothesis to find v_i'
-      let t' := λ (i : fin M),  n_ih ((@tail ℕ n.succ) '' (Si i)),
-      
-      -- For technical reasons, it's easier to define the finite sets
-      -- v_i using subtypes.
-      -- Thus, vi is a function from fin M to finite sets b, s.t.
-      -- b ⊆ Si i and Si i ⊆ upper_set b.
-      let vi'' := λ i, classical.some (t' i),
-      let vi_val'' := λ i, classical.some (single_preimage (Si i) (vi'' i) (vector.tail) (classical.some_spec (t' i)).1),
-      have vi_P'' : ∀ i, P (Si i) (vi_val'' i) := begin
+      -- We use the induction hypothesis to find get the existance of
+      -- v_i' and then use axiom of choice to pick it.
+      let vi' := λ i, classical.some (n_ih ((@tail ℕ n.succ) '' (Si i))),
+      -- Find a finite set v_i s.t. tail(v_i) = v_i'
+      let vi := λ i, classical.some (single_preimage (Si i) (vi' i) (vector.tail) (classical.some_spec (n_ih ((@tail ℕ n.succ) '' (Si i)))).1),
+      have vi_P : ∀ i, P (Si i) (vi i) := begin
         intro i,
-        have P_v := classical.some_spec (single_preimage (Si i) (vi'' i) (vector.tail) (classical.some_spec (t' i)).1),
-        have P_v' := classical.some_spec (t' i),
-        rw P,
+        have P_v' := classical.some_spec (n_ih ((@tail ℕ n.succ) '' (Si i))),
+        have P_v := classical.some_spec (single_preimage (Si i) (vi' i) (vector.tail) (classical.some_spec (n_ih ((@tail ℕ n.succ) '' (Si i)))).1),
         split,
         exact P_v.1,
+        have vi'_eq_some : vi' i = some _ := rfl,
+        rw ←vi'_eq_some at P_v',
         rw ←P_v.2 at P_v',
-        admit,
-      end,
-      have vi' := @subtype_axiom_of_choice
-                  (fin M)
-                  (finset (vector ℕ n))
-                  (λ (i : fin M) (v : finset (vector ℕ n)),
-                    P ((@tail ℕ n.succ) '' (Si i)) v)
-                  t',
-      let vi : Π (i : fin M), {b // P (Si i) b} := 
-      begin
-        intro i,
-        let b' := vi' i,
-        have P_b' := b'.property,
-        cases P_b',
-        have ex_b := single_preimage (Si i) b'.val vector.tail P_b'_left,
-        choose b hb using ex_b,
-        exact ⟨ b, begin
-          split, {
-            exact hb.1,
-          }, { 
-            rw ←hb.2 at P_b'_right,
-            refine lift_upperset i (Si i) b P_b'_right
-              (λs hs, le_of_eq hs.2)
-              (λs hs, begin exact le_of_eq
-                (mem_of_subset_of_mem hb.1 hs).2.symm end),
-          }
-        end ⟩,
+        refine lift_upperset i (Si i) (vi i) P_v'.2
+          (λs hs, le_of_eq hs.2)
+          (λs hs, le_of_eq (mem_of_subset_of_mem P_v.1 hs).2.symm),
       end,
       -- Then, we can unpack the subtype, to get two functions,
       -- vi_val giving us finite sets and vi_P giving us proofs,
       -- that vi_val i satisfies the proper conditions.
-      let vi_val := λ (i : fin M), (vi i).val,
-      have vi_P := λ (i : fin M), (vi i).property,
       -- All that work lets us define the finite set V
-      let V := v ∪ finset.bUnion (finset.univ) vi_val,
+      let V := v ∪ finset.bUnion (finset.univ) vi,
       existsi V,
       -- Now, we have to prove that V ⊆ S and S ⊆ upper_set V
       split, {
@@ -317,7 +288,7 @@ begin
           have s_in_upper := set.mem_of_subset_of_mem Si_sub_upper s_in_Si,
           rcases s_in_upper with ⟨ x, s', s'_in_vi, hs' ⟩,
           -- Prove that s' ∈ ⋃vi i, to then prove that s' ∈ V.
-          have s'_in_Uvi : s' ∈ (finset.bUnion univ vi_val) := begin
+          have s'_in_Uvi : s' ∈ (finset.bUnion univ vi) := begin
             rw finset.mem_bUnion,
             apply exists.intro i,
             apply exists.intro (finset.mem_univ i),
@@ -328,5 +299,5 @@ begin
         }
       },
     }
-  }
+  },
 end

@@ -17,7 +17,6 @@ open vector set finset finsupp mv_polynomial
 universe u
 variables {σ : Type*} [finite σ] [decidable_eq σ] [finite σ] [term_order σ]
 variables {R : Type u} [field R] {n : ℕ} [decidable_eq R]
-variables {n : ℕ}
 
 
 def finset_grobner_basis [term_order σ] (F : finset (mv_polynomial σ R)) (I : ideal (mv_polynomial σ R)) : Prop :=
@@ -95,6 +94,7 @@ theorem finset_exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ
 def grobner_basis {n : ℕ} [term_order σ] (F : fin n → (mv_polynomial σ R)) (I : ideal (mv_polynomial σ R)) : Prop :=
   (∀ m : fin n, F m ∈ I ∧ F m ≠ 0) ∧
   (∀ f ∈ I, f ≠ 0 → ∃ m : fin n, (LT (F m)) ∣ (LT f))
+
 def span_ideal {n : ℕ} (G : fin n → mv_polynomial σ R) : ideal (mv_polynomial σ R) := ideal.span ( λf, ∃i, f = (G i) )
 theorem exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
   ∃ (n : ℕ) (F : fin n → (mv_polynomial σ R)), grobner_basis F I := begin
@@ -171,7 +171,7 @@ theorem exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ R)) :
   end
 
 lemma span_ideal_basis (G : fin n → mv_polynomial σ R) : basis (fin n) R (span_ideal G) := begin
-
+  basis.mk
 end
 theorem div_zero_iff_member {n : ℕ} (f : mv_polynomial σ R) (G : fin n → mv_polynomial σ R) (H : grobner_basis G (span_ideal G)) :
   mv_div_r f G = 0 ↔ f ∈ span_ideal G := begin
