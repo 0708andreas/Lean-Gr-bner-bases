@@ -35,12 +35,13 @@
 \newcommand{\B}{\mathbb{B}}
 \newcommand{\dif}{\mathrm{d}}
 \newcommand{\Prop}{\mathit{Prop}}
-\newcommand{\type}{\text{ type}}
+\newcommand{\type}{\textsc{ Type}}
 \newcommand{\Type}{\mathit{Type}}
 \newcommand{\Sort}{\mathit{Sort\;}}
 \renewcommand{\Prop}{\mathit{Prop}}
 \DeclareMathOperator{\Arg}{Arg}
 \DeclareMathOperator{\IN}{IN}
+\DeclareMathOperator{\LT}{LT}
 \newcommand{\la}[1]{\lambda{#1}.\,}
 
 
@@ -170,7 +171,7 @@ The defining feature of {\emph type} theory is, that every element has a type. T
 In type theory the above rewrite rule would look like this:
 
 \begin{prooftree}
-  % \hypo{\Gamma \vdash \mathit{Prop} \text{ type}}
+  % \hypo{\Gamma \vdash \mathit{Prop} \type}
   \hypo{\Gamma \vdash P : \mathit{Prop}}
   \hypo{\Gamma \vdash Q : \mathit{Prop}}
   \infer2[$\land$-intro]{\Gamma \vdash P \land Q : \Prop}
@@ -181,10 +182,10 @@ Everything is read the same, except $P : \Prop$ is read ``$P$ has type $\Prop$''
 \begin{definition}
   Type theory has four different \textit{judgements}.
   \begin{enumerate}
-    \item $\Gamma \vdash A \text{ type}$ says $A$ is a well-formed type in context $\Gamma$.
-    \item $\Gamma \vdash A \doteq B \text{ type}$ says $A$ and $B$ are judgementally equal types in context $\Gamma$.
+    \item $\Gamma \vdash A \type$ says $A$ is a well-formed type in context $\Gamma$.
+    \item $\Gamma \vdash A \doteq B \type$ says $A$ and $B$ are judgementally equal types in context $\Gamma$.
     \item $\Gamma \vdash a : A$ says $a$ is an element of type $A$ in context $\Gamma$.
-      \item $\Gamma \vdash a \doteq b \text{ type}$ says $a$ and $b$ both have type $A$ and are judgementally equal.
+    \item $\Gamma,\, a:A,\, b:A \vdash a \doteq b \type$ says $a$ and $b$ both have type $A$ and are judgementally equal.
   \end{enumerate}
 \end{definition}
 
@@ -215,11 +216,11 @@ Judgemental equality is actually a very strong equality, and many objects we usu
 We need to introduce dependent types as well as functions, before we can get going.
 
 \begin{definition}
-  A \textit{dependent type} is a type of the form $\Gamma, x : A \vdash B(x) \text{ type}$ with a rule letting us assume elements of that type:
+  A \textit{dependent type} is a type of the form $\Gamma, x : A \vdash B(x) \type$ with a rule letting us assume elements of that type:
 
   \begin{center}
     \begin{prooftree}
-      \hypo{\Gamma, x : A \vdash B(x) \text{ type}}
+      \hypo{\Gamma, x : A \vdash B(x) \type}
       \infer1{\Gamma, x : A, b : B(x) \vdash b : B(x)}
     \end{prooftree}
   \end{center}
@@ -227,7 +228,7 @@ We need to introduce dependent types as well as functions, before we can get goi
   When $B(x)$ is independent of $x$ we simply write $B$. In that case:
   \begin{center}
     \begin{prooftree}
-      \hypo{\Gamma \vdash B \text{ type}}
+      \hypo{\Gamma \vdash B \type}
       \infer1{\Gamma, b : B \vdash b : B}
     \end{prooftree}
   \end{center}
@@ -244,8 +245,8 @@ Note that for different $x : A$ in the context, $B(x)$ may be different type. Us
 
   \begin{align*}
     &\begin{prooftree}
-      \hypo{\Gamma, x : A \vdash B(x) \text{ type}}
-      \infer1{\Gamma \vdash \Pi_{x:A} B(x) \text{ type}}
+      \hypo{\Gamma, x : A \vdash B(x) \type}
+      \infer1{\Gamma \vdash \Pi_{x:A} B(x) \type}
     \end{prooftree}
       &
     &\begin{prooftree}
@@ -281,7 +282,7 @@ We now have the building blocks to start formulating usual logic in dependent ty
   The empty type (false) is given by
 \begin{align*}
   \begin{prooftree}
-    \infer0{\vdash \emptyset}
+    \infer0{\vdash \emptyset \type}
   \end{prooftree} & &
   \begin{prooftree}
     \infer0{\vdash ind_{\emptyset} : \Pi_{x:\emptyset} P(x)}
@@ -310,24 +311,24 @@ In this light, the induction rule of $\emptyset$ states, that given a proof of f
 We can interpret something being false $\neg A$ as the type $A \to \emptyset$. Then ``$A$ is false'' translates to ``assuming $A$, I can prove false''. We can then prove the statement $(A \implies B) \implies (\neg B \implies \neg A)$. In type theory, this translates to $(A \to B) \to ((B \to \emptyset) \to (A \to \emptyset))$. The construction is as follows:
 
 \begin{theorem}
-  $(A \implies B) \implies (\neg B \implies \neg B)$
+  $(A \implies B) \implies (\neg B \implies \neg A)$
 \end{theorem}
 \begin{proof}
   We construct an element of the desired type:
 \begin{center}
   \begin{prooftree}
-    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash A \type}
     \infer1{\Gamma, a : A \vdash a : A}
-    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash A \type}
     \infer1{\Gamma, a : A \vdash a : A}
-    \hypo{\Gamma \vdash B \text{ type}}
-    \infer2{\Gamma \vdash A \to B \text{ type}}
+    \hypo{\Gamma \vdash B \type}
+    \infer2{\Gamma \vdash A \to B \type}
     \infer1{\Gamma, h : A \to B \vdash h : A \to B}
     \infer2{\Gamma, a : A, h : A \to B \vdash h(a) : B}
-    \hypo{\Gamma \vdash B \text{ type}}
+    \hypo{\Gamma \vdash B \type}
     \infer1{\Gamma, b : B \vdash b : B}
-    \infer0{\vdash \emptyset \text{ type}}
-    \infer2{\Gamma \vdash B \to \emptyset \text{ type}}
+    \infer0{\vdash \emptyset \type}
+    \infer2{\Gamma \vdash B \to \emptyset \type}
     \infer1{\Gamma, f : B \to \emptyset \vdash f : B \to \emptyset}
     \infer2{\Gamma, a : A, f : B \to \emptyset, h : A \to B \vdash f(h(a)) : \emptyset}
     \infer1{\Gamma, f : B \to \emptyset, h : A \to B \vdash \la a f(h(a)) : A \to \emptyset}
@@ -346,26 +347,26 @@ So how do we actually use the induction principle $\mathit{ind}_{\emptyset}$? We
   The type of disjunction
 \begin{align*}
   \begin{prooftree}
-    \hypo{\Gamma \vdash A \text{ type}}
-    \hypo{\Gamma \vdash B \text{ type}}
-    \infer2{\Gamma \vdash A \lor B \text{ type}}
+    \hypo{\Gamma \vdash A \type}
+    \hypo{\Gamma \vdash B \type}
+    \infer2{\Gamma \vdash A \lor B \type}
   \end{prooftree} & &
   \begin{prooftree}
     \hypo{\Gamma \vdash a : A}
-    \hypo{\Gamma \vdash B \text{ type}}
+    \hypo{\Gamma \vdash B \type}
     \infer2{\Gamma \vdash \iota_{1} : A \to A \lor B}
   \end{prooftree}
   &&
   \begin{prooftree}
-    \hypo{\Gamma \vdash A \text{ type}}
+    \hypo{\Gamma \vdash A \type}
     \hypo{\Gamma \vdash b : B}
     \infer2{\Gamma \vdash \iota_{2} : B \to A \lor B}
   \end{prooftree}
 \end{align*}
 \begin{align*}
   \begin{prooftree}
-    \hypo{\Gamma \vdash A \text{ type}}
-    \hypo{\Gamma \vdash B \text{ type}}
+    \hypo{\Gamma \vdash A \type}
+    \hypo{\Gamma \vdash B \type}
     \infer2{\Gamma \vdash \mathit{ind}_{\lor} : (\Pi_{a:A} P(\iota_{1}(a))) \to (\Pi_{b:B} P(\iota_{2}(b))) \to (\Pi_{z:A\lor B} P(z))}
     % \hypo{\Gamma \vdash l : \Pi_{a:A}P(a)}
     % \hypo{\Gamma \vdash r : \Pi_{b:B} P(b)}
@@ -441,7 +442,7 @@ So far we've only thought about propositions. Let's introduce to natural numbers
 
 \begin{align*}
  &\begin{prooftree}
-    \infer0{\vdash \N \text{ type }}
+    \infer0{\vdash \N \type}
   \end{prooftree}
    &
   &\begin{prooftree}
@@ -454,7 +455,7 @@ So far we've only thought about propositions. Let's introduce to natural numbers
 \end{align*}
 \begin{align*}
   \begin{prooftree}
-    \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+    \hypo{\Gamma, n : \N \vdash P(n) \type}
     \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
     \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
     \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}) : \Pi_{n:\N} P(n)}
@@ -462,7 +463,7 @@ So far we've only thought about propositions. Let's introduce to natural numbers
 \end{align*}
 \begin{align*}
   \begin{prooftree}
-      \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+      \hypo{\Gamma, n : \N \vdash P(n) \type}
       \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
       \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
       \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}, 0_{\N}) \doteq p_{0} : P(0_{\N})}
@@ -470,7 +471,7 @@ So far we've only thought about propositions. Let's introduce to natural numbers
 \end{align*}
 \begin{align*}
   \begin{prooftree}
-      \hypo{\Gamma, n : \N \vdash P(n) \text{ type}}
+      \hypo{\Gamma, n : \N \vdash P(n) \type}
       \hypo{\Gamma \vdash p_{0} : P(0_{\N})}
       \hypo{\Gamma \vdash p_{s} : \Pi_{n:\N} (P(n) \to P(succ_{\N}(n)))}
       \infer3{\Gamma \vdash ind_{\N}(p_{0}, p_{s}, succ_{\N}(n)) \doteq p_{s}(n, ind_{\N}(p_{0}, p_{s}, n)) : P(succ_{\N}(n))}
@@ -916,9 +917,7 @@ You might notice that there are a couple of differences from the way we did the 
 \subsection{The library of mathematics, mathlib}
 We introduced our own definition of the natural numbers, but if we actually wanted to do something with them, we would have a lot of work ahead of us. We still haven't defined multiplication, nor proven that it's commutative, we have no concept of prime numbers. We would want to show that every number has a unique prime decomposition, we'd want to introduce greatest common divisor and Eulers totient function, there's a lot of foundational tools still missing. We could do it, and perhaps it would be a good exercise, but we don't have to.
 
-Lean has a large catalogue of mathematics called the mathlib. You can look up the documentation at {\footnotesize \url{https://leanprover-community.github.io/mathlib_docs/}}. Try searching for \lean{zmod.chinese_remainder}. It states that, assuming $m, n \in \Z$ are coprime, there is a ring isomorphism between $\Z/mn\Z$ and $\Z/m\Z \times \Z/n\Z$. You can click on most of the statement, to see the definition of $\Z/n\Z$ as a type, see the definition of \lean{coprime} as well as the definition of a ring isomorphism. It's a good way to explore the mathlib, but also a bit overwhelming. Let's work through a simple example together:
-
-{\color{red} Do an identity on the natural numbers using induction.}
+Lean has a large catalogue of mathematics called the mathlib. You can look up the documentation at {\footnotesize \url{https://leanprover-community.github.io/mathlib_docs/}}. Try searching for \lean{zmod.chinese_remainder}. It states that, assuming $m, n \in \Z$ are coprime, there is a ring isomorphism between $\Z/mn\Z$ and $\Z/m\Z \times \Z/n\Z$. You can click on most of the statement, to see the definition of $\Z/n\Z$ as a type, see the definition of \lean{coprime} as well as the definition of a ring isomorphism. It's a good way to explore the mathlib, but also a bit overwhelming.
 
 We'll gradually introduce more of the mathlib, as it becomes nessecary. You can get an overview of what is in the mathlib here: {\footnotesize \url{https://leanprover-community.github.io/mathlib-overview.html}}. Right now, think of your favorite part of undergraduate math, and check if it's in the mathlib.
 
@@ -927,7 +926,7 @@ The type $\N$ seems to capture the natural numbers well, but most of mathematics
 
 We can introduce a type \lean{group G}, which acts as a proof that the type \lean{G} is a group. Then, the assumption ``let $G$ be a group'' can be said as ``let $G$ be a set and $g_{G}$ a be a proof that $G$ has a group structure''. This translates cleanly into Lean, for example \lean{theorem Z_univ (G : Type) (gs : group G) (g : G)  : ℤ →* G} stating that there is a group homomorphism from $\Z$ into any non-empty group (here \lean{G1 →* G2} is the type of group homomorphisms from \lean{G1} to \lean{G2}).
 
-So how what would this type \lean{group G} look like? Close to how mathematicians usually define groups: a group is a tuple $(G,\; \cdot : G \to G \to G,\;\;\; ^{-1} : G \to G)$ with the usual group axioms. In Lean, the group axioms are a part of the tuple:
+So what would this type \lean{group G} look like? Close to how mathematicians usually define groups: a group is a tuple $(G,\; \cdot : G \to G \to G,\;\;\; ^{-1} : G \to G)$ with the usual group axioms. In Lean, the group axioms are a part of the tuple:
 
 \begin{minted}{lean}
 @[class]
@@ -950,7 +949,7 @@ lemma mul_right_inv {G : Type} [group G] (g : G) :
     rw [←mul_left_inv (inv g), inv_eq_of_mul (mul_left_inv g)]
   end
 \end{minted}
-Here the assumption that \lean{G} is a group is passed in square brackets and we can use it like so: \lean{mul_right_inv 2 : mul 2 (inv 2) = 1}. The group itself is written in curly brackets, which means that Lean infers that from context. Thus both the group and the proof that it is a group is inferred from context, so we don't have to write them explicitly.
+Here the assumption that \lean{G} is a group is passed in square brackets and we can use it like so: \lean{mul_right_inv 2 : mul 2 (inv 2) = 1}. The group itself is written in curly brackets, which means that Lean infers that from context. Thus both the group and the proof that it is a group is inferred from context, so we don't have to write them explicitly. If we want to supply those arguments explicitly, we can write \lean{@mul_right_inv ℚ (ℚ.group) 2 : mul 2 (inv 2) = 1}.
 
 In addition to abbreviating notation, type classes can be automatically generated. For example, if $G$ is a group and $S$ is any type, the functions $S \to G$ have a natural pointwise group structure. This can be expressed in Lean as follows:
 
@@ -1090,7 +1089,7 @@ Note that because the relation \lean{r} is given to the left of the colon in the
 
 Let's see that this formulation captures the same concept:
 
-\begin{theorem}
+\begin{theorem}\label{thm:wf_iff_wo}
   Let $\leq$ be a total order on a set $S$. Then $\leq$ is a well-order if and only if every element of $S$ is accessible w.r.t. $<$.
 \end{theorem}
 \begin{proof}
@@ -1168,7 +1167,7 @@ begin admit, end
 
 You're going to need the lemmas \lean{prod.lex.lt_iff} and \lean{nat.lt_succ_self} from mathlib.
 
-\subsection{Well-founded recursion using the equation compiler}
+\subsubsection{Well-founded recursion using the equation compiler}
 Now that the mathematical foundation for well-founded recursion is in place, we would like a better notation. Lean can actually express the Ackermann function directly:
 
 \begin{minted}{lean}
@@ -1185,6 +1184,12 @@ def add : ℕ → ℕ → ℕ
 | (m+1) n := (add m n) + 1
 \end{minted}
 
+Sometimes, the well-order isn't obvious, or Lean may not be able to prove that the recursive calls decreases. In that case we can use \lean{using_well_founded} to specify the well-order and the proof. For example for the Ackermann function:
+
+\begin{minted}{lean}
+
+\end{minted}
+
 \subsection{Sets}\label{ssec:sets}
 So far, we've used types to fill the role of sets. However, that's not always practical. We don't have subtypes, so there is no way to express the concept of a subset. This means we can't talk about partitions or restrict a function to a subset. How would we talk about these things in Lean?
 
@@ -1193,7 +1198,7 @@ The answer is simple. The statement $a \in A$ is a proposition, so we simply def
 def set (α : Type) := α → Prop
 def mem (α : Type) (S : set α) (a : α) : Prop := S a
 \end{minted}
-so the set $A$ is actually a predicate, deciding whether any element $a$ is in $A$ or not. We can define notation, so that \lean{a ∈ S := S a} and there we go. A subset is simply a set, for which every element is conatined in the superset
+so the set $A$ is actually a predicate, deciding whether any element $a$ is in $A$ or not. We can define notation, so that \lean{a ∈ S := S a} and there we go. A subset is simply a set, for which every element is contained in the superset
 \begin{minted}{lean}
 def subset (α : Type) (S T : set α) : Prop := ∀(a : α), a ∈ S → a ∈ T
 \end{minted}
@@ -1217,7 +1222,7 @@ def AC {α β : Type} {r : α → β → Prop}
 \end{minted}
 \textit{Remark:} for reasons unknown to me, the definition of sigma-types in Lean forbid propositions as the second element. Instead, we use \lean{psigma}, which allows them. \lean{psigma (β : α → Type)} means \lean{Σa:α, β(a)}.
 
-The way turn this into the usual axiom of choice is by letting \lean{A := subtype (set α)}, \lean{B := α} and the relation \lean{a ~ b} denote \lean{b ∈ a}. Then, assuming every set in \lean{A} is nonempty, we have that every \lean{a ∈ A} is in relation to some \lean{b : B}, so \lean{AC} gives us a choice function.
+The way turn this into the usual axiom of choice is by letting \lean{A} be a subtype of \lean{set α}, \lean{B := α} and the relation \lean{a ~ b} denote \lean{b ∈ a}. Then, assuming every set in \lean{A} is nonempty, we have that every \lean{a ∈ A} is in relation to some \lean{b : B}, so \lean{AC} gives us a choice function.
 
 \subsubsection{Notation for sets and subtypes}
 Lean defines special notation for sets, so our statements look a little more familiar. I haven't been able to find documentation for these notations, so here is a quick summary:
@@ -1229,7 +1234,7 @@ Lean defines special notation for sets, so our statements look a little more fam
 {x ∈ S | P x} := {x : A | x ∈ S ∧ P x}
 -- If you're looking for lemmas about sets of the form
 -- {x ∈ S | P x}, they're called 'sep' in mathlib
--- F.ex. mem_sep
+-- F.ex. mem_sep_eq {α : Type u} {s t : set α} : {x ∈ s | x ∈ t} = s ∩ t
 
 -- Membership of a set is just the fact that the element
 -- satisfyes the defining property:
@@ -1249,9 +1254,9 @@ h' := h.2
 
 
 \section{Gröbner bases as an extended example}
-In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal'' informal proofs and the proofs in Lean, to get an understanding of the difference.
+In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal,'' informal proofs and the proofs in Lean, to get an understanding of the difference.
 
-We'll proceed as follows: first, we prove Dicksons lemma, which enables us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases. Finally, we define the multivariate division algorithm, and prove its basic properties.
+We'll proceed as follows: first, we prove Dicksons lemma, which will later enable us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases, and prove that they exist for all ideals. Finally, we define the multivariate division algorithm, and prove its basic properties.
 
 \subsection{Dicksons lemma}
 Dicksons lemma is a sort of well-ordering theorem for $\N^{n}$, but instead of finding a single least element, we find a finite collection of least elements.
@@ -1292,36 +1297,62 @@ But that is not all. Addition on vectors isn't defined in mathlib, so we need to
 
 \end{lemma}
 \begin{proof}
-  This proof is rather long, and we need to build
+  This proof is rather long, and we need to build a bunch of lemmas and notations in order for the proof to resemble the human proof.
 
   First, we define some notation:
 
-  \inputminted[firstline=84, lastline=89]{lean}{../src/dickson.lean}
+  \inputminted[firstline=65, lastline=70]{lean}{../src/dickson.lean}
 
-  This is so that \lean{upper_set V}$= \{s \in \N^{n} \mid \exists s' \in \{x_{1}, \dots, x_{r}\}, x \in \N^{n} : s = s' + x\}.$
+  This is so that \lean{upper_set V}$\;= \{s \in \N^{n} \mid \exists s' \in \{x_{1}, \dots, x_{r}\}, x \in \N^{n} : s = s' + x\}.$
 
   Now, let's look at the proof from before. First, we have the base case, $n = 0$:
-  \inputminted[firstline=81, lastline=107]{lean}{../src/dickson.lean}
+  \inputminted[firstline=72, lastline=93]{lean}{../src/dickson.lean}
 
-  Second, there was a step where we used the axiom of choice, do go from a finite set $v' \subseteq \N^{n}$ to a finite set $v \subset \N^{n+1}$ such that $t(v) = v'$. The proof that this is possible is called \lean{single_preimage}, and is in the appendix, section~\ref{lean:single_preimage}. Here, there is also a version of the axiom of choice, formulated using subtypes, called \lean{subtype_axiom_of_choice}, which we'll also need.
+  Second, there was a step where we used the axiom of choice, to go from a finite set $v' \subseteq \N^{n}$ to a finite set $v \subset \N^{n+1}$ such that $t(v) = v'$. The proof that this is possible is called \lean{single_preimage}, and is in the appendix, section~\ref{lean:single_preimage}.
 
   Third, we'll need some lemmas about how this \lean{upper_set} behaves. We'll need that $U(\varemptyset) = \varemptyset$:
 
-  \inputminted[firstline=109, lastline=116]{lean}{../src/dickson.lean}
+  \inputminted[firstline=95, lastline=102]{lean}{../src/dickson.lean}
 
-  and we'll need
+  and we'll need that if $v \subset S$ is a finite subset of a set of vectors, such that $t(S) \subseteq U(t(v))$ and for any pair of vectors $s \in S$ and $x \in v$, the first entry of $v$ is less than the first entry of $s$, then $S \subseteq U(v)$. This was skipped in the informal proof, but is not entirely trivial:
 
-  \inputminted[firstline=148, lastline=175]{lean}{../src/dickson.lean}
+  \inputminted[firstline=134, lastline=159]{lean}{../src/dickson.lean}
 
   Finally, we need that $S = S_{\ge M} \cup \bigcup_{i=0}^{M} S_{i}$:
 
-  \inputminted[firstline=118, lastline=146]{lean}{../src/dickson.lean}
+  \inputminted[firstline=104, lastline=132]{lean}{../src/dickson.lean}
 
   With all that out of the way, here is the proof, with the same structure as the informal proof:
 
-  \inputminted[firstline=177]{lean}{../src/dickson.lean}
+  \inputminted[firstline=161]{lean}{../src/dickson.lean}
   ~
 \end{proof}
+
+However, multivariate polynomials in Lean are not using vectors to represent terms. Instead, they fix a type $\sigma$ and let terms be finitely supported functions from $\sigma$ to $\N$. However, this is not a convenient setting to prove Dicksons lemma, since we need to do induction on the number of variables. There is no good way to remove and add elements from types, so we use vectors instead. Now, we need to translate the proposition into using sets of \lean{σ →₀ ℕ} instead of sets of \lean{vector n ℕ}. Note, that \lean{→₀} is notation for ``finitely supported functions.''
+
+The tool we use for this translation is monoid isomorphisms. If we have a function \lean{f : (σ →₀ ℕ) → vector n ℕ} such that \lean{f (v1 + v2) = (f v1) + (f v2)} and this \lean{f} has an inverse \lean{g : vector n ℕ → (σ →₀ ℕ)}, then we should be able to replace every occurence of \lean{vector n ℕ} in \lean{dickson} with \lean{σ →₀ ℕ}.
+
+Since nothing in this world is easy, there is no monoid isomorphism in mathlib between \lean{σ →₀ ℕ} for finite $\sigma$ and \lean{vector n ℕ}. There is, however, a regular isomorphism between vectors and functions from the canonical type of $n$ elements called \lean{fin n}. We can extend this to be a monoid isomorphism like so:
+
+\inputminted[firstline=21, lastline=29]{lean}{../src/dickson_add_monoid.lean}
+
+Now, we can construct the following equivalences for finite $\sigma$ of cardinality $n$:
+
+\begin{minted}{lean}
+(vector ℕ n) ≃+ (fin n → ℕ) ≃+ (fin n →₀ ℕ) ≃+ (σ →₀ ℕ)
+\end{minted}
+
+Like so:
+
+\inputminted[firstline=31, lastline=48]{lean}{../src/dickson_add_monoid.lean}
+
+And now we can translate Dicksons lemma using this:
+
+\inputminted[firstline=50]{lean}{../src/dickson_add_monoid.lean}
+
+
+
+\subsection{Multivariate polynomials and Dicksons lemma}
 
 Now, let's introduce multivariate polynomials. In Lean, they are defined in the mathlib as:
 
@@ -1343,22 +1374,120 @@ In order to define Gröbner bases, we need the notion of a term order:
     \item For all terms $v, v_{1}, v_{2} \in \N^{n}$ we have $v_{1} \le v_{2} \implies v + v_{1} \le v + v2$
       \item For all terms $v \in \N^{n}$ we have $0 \le v$.
   \end{enumerate}
-
 \end{definition}
 
 To carry this definition over to Lean, we need a type alias, see section~\ref{sss:typealias}, to avoid using the default pointwise ordering defined on functions.
 
 \inputminted[firstline=24, lastline=28]{lean}{../src/monomial_order.lean}
 
+Let's prove a simple lemma about term orders, that we're going to need later:
+
+\begin{lemma}
+  Let $\le$ be a term order and $v, v_{1}, v_{2} \in \N^{n}$. Then $v \le v_{1} \implies v \le v_{1} + v_{2}$.
+\end{lemma}
+\begin{proof}
+  Since $0 \le v_{2}$ we have $v \le v_{1} = v_{1} + 0 \le v_{1} + v_{2}$, so the conclusion follows by transitivity.
+
+\inputminted[firstline=30, lastline=36]{lean}{../src/monomial_order.lean}
+  ~
+\end{proof}
+
+Now, we can formulate the main theorem of this section:
+
+\begin{theorem}\label{thm:term_order_is_well_order}
+  Let $\le$ be a term order. Then $\le$ is a well-order
+\end{theorem}
+\begin{proof}
+  Let $S \subseteq \N^{n}$ be a non-empty set of vectors. By Dicksons lemma (\ref{lem:dickson}) we can find a finite set $v \subseteq S$ such that $S \subseteq U(v) = \{s \in \N^{n} \mid \exists s' \in v, x \in \N^{n} : s = s' + x\}$.
+
+  Now, let $s_{0} \in v$ be the smallest element of $v$ with respect to $\le$. Then $s_{0}$ is a lower bound for $v$. Furthermore, let $s \in S$. Since $s \in U(v)$ we can find $s' \in v$ and $x \in \N^{n}$ such that $s = s' + x$, thus $s' \le s$. But since $s' \in v$ we have $s_{0} \le s'$ so $s_{0} \le s$. Thus $s_{0}$ is a least element of $S$.
+
+  In lean it looks like this:
+
+  \inputminted[firstline=144, lastline=168]{lean}{../src/monomial_order.lean}
+\end{proof}
+
+\begin{corollary}
+  Given er term-order $\le$, the type \lean{mv_term σ} has a well-founded order given by $<$, i.e. every element of \lean{mv_term σ} is accessible w.r.t. $<$.
+\end{corollary}
+\begin{proof}
+  Apply theorem \ref{thm:wf_iff_wo} to theorem \ref{thm:term_order_is_well_order}
+
+  \inputminted[firstline=170, lastline=177]{lean}{../src/monomial_order.lean}
+  ~
+\end{proof}
+
+
+
+\subsection{Initial terms and Gröbner bases}
+
+When dividing one polynomial by another, we want to start with the largest term. However, there is no natural way of defining the largest term in a multivariate polynomial. Term orders give us a way of comparing terms, which enables us to find the largest one.
+
 \begin{definition}
   Let $\le$ be a term order, and $f \in k[\sigma]$ be a non-zero multinomial over a field $k$. The inital term of $f$ is the largest term of $f$ under the order $\le$, and is denoted by $\IN(f)$.
 
+  We denote by $\LT(f)$ the monomial ocurring as a summand in $f$ with term $\IN(f)$.
+
   In Lean:
-  \inputminted[firstline=78, lastline=82]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=69, lastline=75]{lean}{../src/monomial_order.lean}
 \end{definition}
 
-Note, that we have defined \lean{IN 0 := 0} even though usually we don't define the initial term of a polynomial with no terms. This is standard practice in Lean, to have the function defined on the entire domain. Similarly, the \lean{real.sqrt : ℝ → ℝ} is defined for negative reals, but theorems about square roots assume $x$ to be positive. That way, you don't have to supply a proof that your number is positive every time you take a square root, only when you want to prove something about it.
+Note, that we have defined \lean{IN 0 := 0} even though usually we don't define the initial term of a polynomial with no terms. This is standard practice in Lean, to have the function defined on the entire domain. Similarly, the square root, \lean{real.sqrt : ℝ → ℝ} is defined for negative reals, but theorems about square roots assume $x$ to be positive. That way, you don't have to supply a proof that your number is positive every time you take a square root, only when you want to prove something about it.
 
+When we do these kinds of ``broadenings,'' it's convenient to have theorem stating the definition within the usual domain:
+
+\inputminted[firstline=77, lastline=81]{lean}{../src/monomial_order.lean}
+
+Let's prove a quick lemma:
+
+\begin{lemma}
+  For a polynomial $f \in k[\sigma]$, the initial term $\IN(f)$ is a term of $f$, i.e. it's coefficient is non-zero.
+\end{lemma}
+\begin{proof}
+  ~
+  \inputminted[firstline=82, lastline=87]{lean}{../src/monomial_order.lean}
+  ~
+\end{proof}
+
+Now, we get to Gröbner bases.
+
+\begin{definition}
+  Let $I \subseteq k[\sigma]$ be an ideal in a polynomial ring and $\le$ be a term order. A {\emph Gröbner basis} for $I$ with respect to $\le$ is a finite set of non-zero polynomials $G = \{f_{1}, f_{2}, \dots, f_{n}\} \subseteq I$ such that for any polynomial $f \in I$, there is an $f_{i} \in G$ with $\LT(f_{i}) \mid \LT(f)$.
+
+  In Lean:
+  \inputminted[firstline=21, lastline=23]{lean}{../src/groebner_basis.lean}
+\end{definition}
+
+Note that the Lean definition doesn't use finite sets, but instead represents a the Gröbner basis as a finite sequence. This mirrors the definitions naming of the polynomials as $\{f_{1}, \dots, f_{n}\}$.
+
+When we do the division algorithm, we'll be able to prove that a Gröbner basis spans the ideal $I$, but we can't do that yet. What we can prove, is that Gröbner bases exists for all ideals.
+
+\begin{theorem}
+  Let $I \subseteq k[\sigma]$ be an ideal in a polynomial ring and $\le$ be a term order. Then there exists a Gröbner basis $G \subseteq I$ for $I$ with respect to $\le$.
+\end{theorem}
+\begin{proof}
+  Let $I \subseteq k[\sigma]$ be an ideal, and let $S = \IN(I \setminus \{0\})$ be the set of initial terms of the non-zero polynomials in $I$. Dicksons lemma gives us a finite set $v' \subseteq S$ such that
+  \[S \subseteq U(v') = \{x \in \N^{n} \mid \exists x' \in \N^{n}, s \in v' : x = x' + x\}\]
+
+  Now, let $v \subseteq I\setminus \{0\}$ be a finite set of non-zero polynomials such that $\IN(v) = v'$. I claim that $v$ is a Gröbner basis of $I$.
+
+  Indeed, let $f \in I$ and let $x = \IN(f)$. Then there is some $f_{i} \in v$ where $x = x' + \IN(f_{i})$ for some $x' \in \N^{n}$. But this means that $\LT(f_{i}) \mid \LT(f)$ since we work over a field. To see this, write $\LT(f) = c \cdot \IN(f)$ and $\LT(f_{i}) = c' \cdot \IN(f_{i})$. Then
+  \begin{align*}
+    \LT(f_{i}) \times \left(\frac{c}{c'} \cdot x\right) &= (c' \cdot \IN(f_{i})) \times \left(\frac{c}{c'} \cdot x\right) \\
+                                   &= \left(c' \frac{c}{c'}\right) \cdot (f_{i} + x) \\
+                                                    &= c \cdot \IN(f) \\
+    &= \LT(f)
+  \end{align*}
+
+  Thus, $G$ is a Gröbner basis for $I$.
+
+  In Lean, the proof looks like this:
+
+  \inputminted[firstline=25, lastline=62]{lean}{../src/groebner_basis.lean}
+\end{proof}
+
+\subsection{The division algorithm}
+The division algorithm for multivariate polynomials is a generalization of the usual division algorithm for polynomials in a single variable.
 
 
 
@@ -1481,9 +1610,9 @@ eq.rec :
 
 If we're given a function $f : A \to B$ and a finite set $v' = \{x'_{1}, \dots, x'_{n}\} \subset B$ such that $v' \subseteq \Im f$, we can find a finite set $v \subseteq A$ such that $f(v) = v'$. This is done by considering each $x'_{i} \in v'$ and picking some $x_{i} \in f^{-1}(\{x'_{i}\})$. Then $v = \{x_{i} \mid i = 1, \dots, n\}$.
 
-When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$ and a set of elements from $\alpha$, $S : \text{set}\, \alpha$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v : \text{finset}\, \alpha$ so that $v \subseteq S$ and $v' = f(v)$.
+When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$, a set of elements from $\alpha$, $S$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v$ so that $v \subseteq S$ and $v' = f(v)$.
 
-\inputminted[firstline=14, lastline=71]{lean}{../src/dickson.lean}
+\inputminted[firstline=14, lastline=63]{lean}{../src/dickson.lean}
 
 
 \end{document}
