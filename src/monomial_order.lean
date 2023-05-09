@@ -27,15 +27,6 @@ class term_order (σ : Type u) [finite σ] extends linear_order (mv_term σ) :=
   (additive : ∀ v v₁ v₂ : mv_term σ, v₁ ≤ v₂ → v + v₁ ≤ v + v₂)
   (zero_le : ∀ v : mv_term σ, 0 ≤ v)
 
-instance : has_dvd (mv_term σ) := ⟨λ v₁ v₂, ∃ v, v₁ = v₂ + v⟩
-lemma mv_term.dvd_intro (a b c : mv_term σ) (h : a = b + c) : a ∣ b := ⟨c, h⟩
-lemma mv_term_dvd_trans {a b c : mv_term σ} : a ∣ b → b ∣ c → a ∣ c
-| h1 h2 := begin cases h1, cases h2,
-           apply mv_term.dvd_intro a c (h2_w + h1_w),
-           rw h1_h, rw h2_h,
-           rw add_assoc c _ _,
-           end
-
 lemma weaken_le [t : term_order σ] (v v1 v2 : mv_term σ) :
 v ≤ v1 → v ≤ (v1 + v2) := begin
   assume h,
@@ -43,12 +34,6 @@ v ≤ v1 → v ≤ (v1 + v2) := begin
   rw add_monoid.add_zero _ at v1_le_sum,
   exact le_trans h v1_le_sum,
 end
-lemma not_le_zero [t : term_order σ] (s : mv_term σ) (h : s ≠ 0) : ¬s ≤ 0 :=
-  begin
-    intro s,
-    refine h _,
-    exact linear_order.le_antisymm _ _ s (term_order.zero_le _),
-  end
 
 lemma mv_polynomial.empty_support_iff_eq_zero (f : mv_polynomial σ R) :
   (f = 0) ↔ f.support = ∅ := begin
@@ -80,17 +65,28 @@ noncomputable def IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ]
     0
   else 
     finset.max' f.support (mv_polynomial.non_empty_support_of_ne_zero f h)
+noncomputable def IN' {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : with_bot (mv_term σ) :=
+  if h : f = 0 then
+    ⊥
+  else
+    ↑(IN f)
+lemma IN'_eq_IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
+  IN' f = ↑(IN f) := begin
+    rw [IN', dite_right h],
+    exact ⊥,
+  end
+lemma IN'_eq_bot {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f = 0) :
+  IN' f = ⊥ := begin
+    rw [IN', dite_left h],
+    exact IN f,
+  end
 noncomputable def LT {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : (mv_polynomial σ R) :=
   mv_polynomial.monomial (IN f) (f.coeff (IN f))
 
 lemma IN_of_non_zero_eq {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   IN f = finset.max' f.support (mv_polynomial.non_empty_support_of_ne_zero f h):= begin
     rw IN,
-    rw dite_eq_iff,
-    right,
-    rw ne.def at h,
-    existsi h,
-    refl,
+    simp *,
   end
 lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   coeff (IN f) f ≠ 0 := begin
@@ -98,6 +94,38 @@ lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
     rw IN_of_non_zero_eq _ h,
     exact finset.max'_mem _ _,
   end
+lemma IN_mem_support [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) : IN f ∈ f.support := begin
+  rw IN,
+  rw dite_right hf,
+  exact finset.max'_mem _ _,
+  exact IN f,
+end
+lemma IN_add_le_max [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g ≠ 0) :
+  IN (f+g) ≤ max (IN f) (IN g) := begin
+  simp,
+  by_cases h : f+g = 0, {
+    rw h,
+    left,
+    exact term_order.zero_le _,
+  }, {
+    have IN_fg : IN (f+g) ∈ (f+g).support := IN_mem_support _ (h),
+    have IN_fug := finset.mem_of_subset mv_polynomial.support_add IN_fg,
+    rw finset.mem_union at IN_fug,
+    cases IN_fug, {
+      left,
+      conv in (IN f) {rw IN,},
+      rw dite_right hf,
+      exact finset.le_max' _ _ IN_fug,
+      exact IN f,
+    }, {
+      right,
+      conv in (IN g) {rw IN,},
+      rw dite_right hg,
+      exact finset.le_max' _ _ IN_fug,
+      exact IN g,
+    }
+  }
+end
 lemma IN_mult [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g ≠ 0) :
   IN(f * g) = IN(f) + IN(g) := begin
     rw IN,
@@ -106,18 +134,18 @@ lemma IN_mult [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g 
       have hx : f = 0 ∨ g = 0 := eq_zero_or_eq_zero_of_mul_eq_zero h,
       cases hx, exact hf hx, exact hg hx,
     }, {
-      rw dite_right h,
+      rw dite_right h, swap, exact IN f,
       rw IN,
-      rw dite_right hf,
+      rw dite_right hf, swap, exact IN f,
       rw IN,
-      rw dite_right hg,
+      rw dite_right hg, swap, exact IN g,
       conv in (f * g) { rw mv_polynomial.mul_def, },
       
       have sup_fg : (f*g).support = f.support.bUnion (λa, g.support.bUnion $ λb, {a+b}) := begin
-
+      admit,
       end,
       admit,
-    }
+    },
   end
 
 lemma term_order_is_well_order' [t : term_order σ] (S : set (mv_polynomial σ R)) (h : S.nonempty) :
@@ -188,45 +216,10 @@ instance [term_order σ] : has_well_founded (mv_term σ) := {
     exact term_order_is_well_order s hs,
   end,
 }
+instance [term_order σ] : has_well_founded (with_bot (mv_term σ)) := {
+  r := linear_order.lt,
+  wf := with_bot.well_founded_lt (has_well_founded.wf),
+}
 #check term_order_is_well_order
 
-
--- class monomial_order (n : ℕ) extends linear_order (vector ℕ n) :=
---   (additive : ∀ v v₁ v₂ : vector ℕ n, v₁ ≤ v₂ → v + v₁ ≤ v + v₂)
---   (zero_le_v : ∀ v : vector ℕ n, 0 ≤ v)
-
--- lemma monomial_order_is_well_order {n : ℕ} [m : monomial_order n] (S : set (vector ℕ n)) [h : S.nonempty] :
---   (∃ s₀ ∈ S, ∀ s ∈ S, s₀ ≤ s) := begin
---     have d := dickson n S,
---     cases d,
---     have d_nonempty : d_w.nonempty := begin
---       have some_in_S := set.nonempty.some_mem h,
---       have some_in_upper := mem_of_subset_of_mem d_h.right some_in_S,
---       rw upper_set at some_in_upper,
---       cases some_in_upper,
---       cases some_in_upper_h with s₀,
---       cases some_in_upper_h_h with hs₀,
---       exact ⟨ s₀, hs₀ ⟩,
---     end,
---     let s₀ := min' d_w d_nonempty,
---     apply exists.intro s₀,
---     have s0_in_d := min'_mem d_w d_nonempty,
---     rw ←mem_coe at s0_in_d,
---     have s0_in_S := mem_of_subset_of_mem d_h.left s0_in_d,
---     apply exists.intro s0_in_S,
---     intros s hs,
---     have s_in_upperset := mem_of_subset_of_mem d_h.right hs,
---     rw upper_set at s_in_upperset,
---     cases s_in_upperset with v hv,
---     cases hv with v1,
---     cases hv_h with v1_in_d s_eq_v_v1,
---     have zero_le_v : 0 ≤ v := m.zero_le_v v,
---     have v1_le_v1_v : v1 + 0 ≤ v1 + v := m.additive v1 0 v zero_le_v,
---     rw vector.add_zero v1 at v1_le_v1_v,
---     rw vector.add_comm at v1_le_v1_v,
---     rw add_eq_zip_add at v1_le_v1_v,
---     rw ←s_eq_v_v1 at v1_le_v1_v,
---     have s0_le_v1 : s₀ ≤ v1 := finset.min'_le d_w v1 v1_in_d,
---     exact le_trans s0_le_v1 v1_le_v1_v,
---   end
 
