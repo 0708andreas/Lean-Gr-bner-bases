@@ -23,6 +23,16 @@ variables {σ : Type u } {R : Type*} [field R] [finite σ] [decidable_eq σ] [de
 
 @[derive [add_comm_monoid, has_zero, has_sub, add_semigroup]]
 def mv_term (σ : Type u) : Type u := (σ →₀ ℕ)
+lemma mv_term.sub_add_cancel (v₁ v₂ : σ →₀ ℕ) (h : v₂ ≤ v₁) : v₁ - v₂ + v₂ = v₁ := begin
+  ext,
+  simp,
+  exact nat.sub_add_cancel (h a),
+end
+lemma mv_term.sub_sub_self (a b : σ →₀ ℕ) (h : b ≤ a) : a - (a - b) = b := begin
+  ext,
+  simp,
+  exact nat.sub_sub_self (h a_1),
+end
 class term_order (σ : Type u) [finite σ] extends linear_order (mv_term σ) :=
   (additive : ∀ v v₁ v₂ : mv_term σ, v₁ ≤ v₂ → v + v₁ ≤ v + v₂)
   (zero_le : ∀ v : mv_term σ, 0 ≤ v)
@@ -94,14 +104,26 @@ lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
     rw IN_of_non_zero_eq _ h,
     exact finset.max'_mem _ _,
   end
-lemma IN_mem_support [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) : IN f ∈ f.support := begin
+lemma IN_mem_support [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) :
+IN f ∈ f.support := begin
   rw IN,
   rw dite_right hf,
   exact finset.max'_mem _ _,
   exact IN f,
 end
+@[simp]
+lemma IN_neg [term_order σ] (f : mv_polynomial σ R) : IN (-f) = IN f := begin
+  rw [IN, IN],
+  by_cases f = 0, {
+    have h' : -f = 0 := by simp *,
+    simp *,
+  }, {
+    have h' : ¬(-f = 0) := by simp *,
+    simp *, 
+  }
+end
 lemma IN_add_le_max [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g ≠ 0) :
-  IN (f+g) ≤ max (IN f) (IN g) := begin
+IN (f+g) ≤ max (IN f) (IN g) := begin
   simp,
   by_cases h : f+g = 0, {
     rw h,
@@ -126,27 +148,72 @@ lemma IN_add_le_max [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (h
     }
   }
 end
-lemma IN_mult [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g ≠ 0) :
-  IN(f * g) = IN(f) + IN(g) := begin
-    rw IN,
-    by_cases h : f * g = 0, {
-      exfalso,
-      have hx : f = 0 ∨ g = 0 := eq_zero_or_eq_zero_of_mul_eq_zero h,
-      cases hx, exact hf hx, exact hg hx,
-    }, {
-      rw dite_right h, swap, exact IN f,
-      rw IN,
-      rw dite_right hf, swap, exact IN f,
-      rw IN,
-      rw dite_right hg, swap, exact IN g,
-      conv in (f * g) { rw mv_polynomial.mul_def, },
-      
-      have sup_fg : (f*g).support = f.support.bUnion (λa, g.support.bUnion $ λb, {a+b}) := begin
-      admit,
-      end,
-      admit,
-    },
-  end
+@[simp]
+lemma IN_zero [term_order σ] : IN (0 : mv_polynomial σ R) = 0 := begin
+  rw IN,
+  simp *,
+end
+@[simp]
+lemma LT_zero [term_order σ] : LT (0 : mv_polynomial σ R) = 0 := begin
+  rw LT,
+  simp *,
+end
+@[simp]
+lemma IN_monomial [term_order σ] (s : σ →₀ ℕ) (c : R) (hc : c ≠ 0) : IN (monomial s c) = s := begin
+  rw IN,
+  simp *,
+  conv in (((monomial s) c).support) {rw support_monomial},
+  simp *,
+end
+@[simp]
+lemma IN_mul [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) (s : σ →₀ ℕ) (c : R) (hc : c ≠ 0) :
+IN ((monomial s c)*f) = IN (monomial s c) + IN f := begin
+  rw [IN_monomial _ _ hc, IN],
+  have H : monomial s c * f ≠ 0 := begin
+    intro hX,
+    rw ←zero_mul f at hX,
+    have hX' := is_domain.mul_right_cancel_of_ne_zero hf hX,
+    rw monomial_eq_zero at hX',
+    exact hc hX',
+  end,
+  rw dite_right H, swap, exact 0,
+  conv in (monomial s c * f) {rw mv_polynomial.mul_def},
+  simp *,
+  apply eq_of_le_of_not_lt, {
+    refine finset.max'_le _ _ _ _,
+    intros y hy,
+    have hy' := finset.mem_of_subset (finsupp.support_sum) hy,
+    rw finset.mem_bUnion at hy',
+    rcases hy' with ⟨i, hi, hy'⟩,
+    have hy'' := finset.mem_of_subset (support_monomial_subset) hy',
+    rw finset.mem_singleton at hy'',
+    rw [IN, hy''],
+    simp *,
+    apply term_order.additive,
+    exact finset.le_max' _ _ hi,
+  }, {
+    intro hX,
+    rw finset.max'_lt_iff at hX,
+    specialize hX (s + IN f),
+    apply @eq.not_lt _ _ (s + IN f : mv_term σ) (s + IN f : mv_term σ) rfl,
+    apply hX,
+    rw [mv_polynomial.mem_support_iff, sum_def, coeff_sum],
+    simp *,
+    exact coeff_IN_nonzero f hf,
+  }
+end
+lemma nonzero_of_LT_nonzero [term_order σ] (f : mv_polynomial σ R) (h : LT f ≠ 0) : f ≠ 0 := begin
+  intro hX,
+  rw hX at h,
+  rw LT_zero at h,
+  exact h rfl,
+end
+lemma eq_zero_of_LT_eq_zero [term_order σ] (f : mv_polynomial σ R) (h : LT f = 0) : f = 0 := begin
+  by_contra hX,
+  rw [LT, monomial_eq_zero] at h,
+  exact coeff_IN_nonzero f hX (h),
+end
+
 
 lemma term_order_is_well_order' [t : term_order σ] (S : set (mv_polynomial σ R)) (h : S.nonempty) :
   (∃ f₀ ∈ S, ∀ f ∈ S, (IN(f₀)) ≤ (IN(f)) ) := begin

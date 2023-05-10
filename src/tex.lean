@@ -1,9 +1,10 @@
--- import tactic.hint
--- import tactic.suggest
+import tactic.hint
+import tactic.suggest
+import tactic.linarith
 import data.set.basic
 import data.prod.lex
--- import data.nat.basic
--- import algebra.order.ring.lemmas
+import data.nat.basic
+import algebra.order.ring.lemmas
 
 section N
 inductive N : Sort 1
@@ -46,6 +47,15 @@ inductive my_eq {α : Sort 1} (a : α) : α → Prop
 #check @my_eq.rec
 #check @eq.rec
 
+-- def add2 : ℕ → ℕ → ℕ
+-- | n m := if h : n = 0 then m else add2 (n-1) m
+-- using_well_founded {
+--   dec_tac := `[exact nat.sub_lt (nat.pos_of_ne_zero h) nat.zero_lt_one ]
+-- }
+  -- using_well_founded {
+  --   dec_tac := `[simp]
+  -- }
+
 def N_add_succ : ∀ n m:N, N_add n m.s = N_add n.s m
 | z     m := rfl
 | (s n) m := congr_arg s (N_add_succ n m)  
@@ -69,7 +79,7 @@ end
 end N
 
 @[class]
-structure group (G : Type) :=
+structure group' (G : Type) :=
   (mul : G → G → G)
   (mul_assoc : ∀g₁ g₂ g₃ : G, mul (mul g₁ g₂) g₃ = mul g₁ (mul g₂ g₃))
   (one : G)
@@ -85,9 +95,14 @@ def Z_alt := ℤ
 def to_Z_alt : ℤ → Z_alt := id 
 def of_Z_alt : Z_alt → ℤ := id 
 
-instance : group Z_alt := {
+instance : group' Z_alt := {
   mul := λ m n, m + n + 1, 
-  mul_assoc := λ m n k, int.add_assoc m n k,
+  mul_assoc := λ m n k,
+    calc m + n + 1 + k + 1 = m + (n + 1 + k + 1) : by rw int.add_assoc m (n+1+k) 1
+    ...                    = m + (n + 1 + k) + 1 : by sorry
+    ...                    = m + (n + (1 + k)) + 1 : by sorry
+    ...                    = m + (n + (k + 1)) + 1 : by sorry
+    ...                    = m + (n + k + 1) + 1 : by sorry,
   one := int.zero,
   inv := λ m, int.neg m,
   one_mul := λ m, int.zero_add m,

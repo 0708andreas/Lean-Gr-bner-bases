@@ -62,14 +62,6 @@ begin
   },
 end
 
-lemma subtype_axiom_of_choice {α β : Type} {p : α → β → Prop}
-  (h : ∀ (a : α), ∃ (b : β), p a b) : Π(a:α), {b // p a b} :=
-  begin
-    intro a,
-    choose b hb using h a,
-    exact ⟨ b, hb ⟩,
-  end
-
 def upper_set {n : ℕ} (v : finset (vector ℕ n)) : (set (vector ℕ n)) :=
   {s : vector ℕ n | ∃ (x s' : vector ℕ n) (H : s' ∈ v), s = x + s'}
 
@@ -94,14 +86,9 @@ lemma dickson_zero (S : set (vector ℕ 0)) :
     }
   }, {
     rw set.not_nonempty_iff_eq_empty at h,
-    apply exists.intro ∅,
-    split, {
-      rw finset.coe_empty,
-      exact set.empty_subset _,
-    }, {
-      rw h,
-      exact set.empty_subset _,
-    },
+    existsi ∅, 
+    rw [h, coe_empty],
+    simp,
   }
 end
 
@@ -159,9 +146,7 @@ begin
   rcases finset.mem_image.mp hs0' with ⟨ s0, s0_in_v, hs0 ⟩,
   let x := (head s - head s0) ::ᵥ x',
   existsi [x, s0, s0_in_v],
-  rw ←(cons_head_tail s),
-  rw eq_comm,
-  rw eq_cons_iff,
+  rw [←(cons_head_tail s), eq_comm, eq_cons_iff],
   split, {
     simp *,
     refine nat.sub_add_cancel _,
@@ -201,7 +186,6 @@ begin
       apply exists.intro v,
       rw h,
       split, {
-        rw finset.coe_empty,
         exact empty_subset S,
       }, {
         rw h at tv_eq_v',
@@ -222,7 +206,7 @@ begin
       let Si := λ (i : (fin M)), ({s ∈ S | i.val = head s}),
       let S_gtM := {s ∈ S | M ≤ head s},
       let S_U := S_gtM ∪ ⋃ i, Si i,
-      -- Show that this is actually a partition, using a lemma
+      -- Show that this is actually a partition.
       have S_eq_S_U : S = S_U := dickson_partition n M S,
       -- Show that S_gtM ⊆ upper_set v, using a lemma
       have S_gtM'_sub_S' : tail '' S_gtM ⊆ S' := image_subset tail
@@ -232,11 +216,12 @@ begin
         (λs hs, hs.2) (λs hs, le_max' (image head v) (head s)
                         (mem_image_of_mem head hs)),
       
-      -- We use the induction hypothesis to find get the existance of
+      -- We use the induction hypothesis to find get the existence of
       -- v_i' and then use axiom of choice to pick it.
       let vi' := λ i, classical.some (n_ih ((@tail ℕ n.succ) '' (Si i))),
       -- Find a finite set v_i s.t. tail(v_i) = v_i'
       let vi := λ i, classical.some (single_preimage (Si i) (vi' i) (vector.tail) (classical.some_spec (n_ih ((@tail ℕ n.succ) '' (Si i)))).1),
+      -- And prove that v_i ⊆ S_i ∧ S_i ⊆ upper_set v_i
       have vi_P : ∀ i, P (Si i) (vi i) := begin
         intro i,
         have P_v' := classical.some_spec (n_ih ((@tail ℕ n.succ) '' (Si i))),
@@ -250,9 +235,6 @@ begin
           (λs hs, le_of_eq hs.2)
           (λs hs, le_of_eq (mem_of_subset_of_mem P_v.1 hs).2.symm),
       end,
-      -- Then, we can unpack the subtype, to get two functions,
-      -- vi_val giving us finite sets and vi_P giving us proofs,
-      -- that vi_val i satisfies the proper conditions.
       -- All that work lets us define the finite set V
       let V := v ∪ finset.bUnion (finset.univ) vi,
       existsi V,

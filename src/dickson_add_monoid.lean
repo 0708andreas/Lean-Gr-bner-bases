@@ -19,37 +19,30 @@ open classical finset set vector finsupp
 lemma vector_equiv_to_fun_eq_nth {n : ℕ} : (equiv.vector_equiv_fin ℕ n).to_fun = vector.nth := rfl
 
 theorem vector_N_equiv_fin_to_N (n : ℕ) :
-  add_equiv (vector ℕ n) (fin n → ℕ) :=
+  (vector ℕ n) ≃+ (fin n → ℕ) :=
   add_equiv.mk' (equiv.vector_equiv_fin ℕ n) (begin
     intros x y,
     unfold_coes,
     rw vector_equiv_to_fun_eq_nth,
-    rw add_eq_zip_add,
     refine funext _,
-    intro m,
-    rw vector.zip_with_nth has_add.add x y,
-    simp *,
+    simp ,
   end)
 
 def linear_equiv_fun_on_finite {α M : Type*} [fintype α] [add_comm_monoid M] :
   (α →₀ M) ≃+ (α → M) :=
-{ to_fun := coe_fn,
-  map_add' := λ f g, rfl,
+{ map_add' := λ f g, rfl,
   .. finsupp.equiv_fun_on_finite }
-
-theorem fin_to_N_equiv_fin_finto_N (n : ℕ) :
-  (fin n → ℕ) ≃+ (fin n →₀ ℕ) := add_equiv.symm linear_equiv_fun_on_finite
 
 theorem vector_N_equiv_fin_fto_N (n : ℕ) :
   (vector ℕ n) ≃+ (fin n →₀ ℕ) :=
-    add_equiv.trans (vector_N_equiv_fin_to_N n) (fin_to_N_equiv_fin_finto_N n)
+    add_equiv.trans (vector_N_equiv_fin_to_N n) (add_equiv.symm linear_equiv_fun_on_finite)
 
 theorem vector_N_equiv_finite_fto_N {σ : Type*} [f : finite σ] :
   (vector ℕ (nat.card σ)) ≃+ (σ →₀ ℕ) := begin
     rw finite_iff_exists_equiv_fin at f,
     choose n hn using f,
     have e := classical.choice hn,
-    rw (nat.card_eq_of_equiv_fin e),
+    rw nat.card_eq_of_equiv_fin e,
     have r := @finsupp.dom_congr (fin n) σ ℕ _ e.symm ,
     exact add_equiv.trans (vector_N_equiv_fin_fto_N n) r,
   end
@@ -57,7 +50,6 @@ theorem vector_N_equiv_finite_fto_N {σ : Type*} [f : finite σ] :
 def mv_upper_set {σ : Type*} [finite σ] (n : ℕ) (v : finset (σ →₀ ℕ)) : (set (σ →₀ ℕ)) :=
   {x : σ →₀ ℕ | ∃ (x' s : σ →₀ ℕ) (H : s ∈ v), x = x' + s}
 
--- Note: man kan måske bruge finsupp.cons til at undgå finsets helt.
 theorem mv_dickson {σ : Type*} [decidable_eq σ] [finite σ] (S : set (σ →₀ ℕ)) :
   ∃ v : finset (σ →₀ ℕ), ↑v ⊆ S ∧ S ⊆ mv_upper_set (nat.card σ) v := begin
     let n := nat.card σ,

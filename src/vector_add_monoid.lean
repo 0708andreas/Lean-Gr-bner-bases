@@ -35,6 +35,12 @@ lemma add_tail {n : ℕ} (v1 v2 : vector ℕ n.succ) :
     repeat {rw add_eq_zip_add},
     simp *,
   end
+@[simp]
+lemma add_nth {n : ℕ} {i : fin n} (v1 v2 : vector ℕ n) :
+  (v1 + v2).nth i = v1.nth i + v2.nth i := begin
+    rw add_eq_zip_add v1 v2,
+    simp,
+  end
 
 lemma add_zero {n : ℕ} (v : vector ℕ n) : v + 0 = v := begin
   induction n, {
