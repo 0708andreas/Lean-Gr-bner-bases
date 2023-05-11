@@ -1,9 +1,11 @@
-import tactic.hint
-import tactic.suggest
-import tactic.linarith
+-- import tactic.hint
+-- import tactic.suggest
+-- import tactic.linarith
+import tactic.nth_rewrite
 import data.set.basic
 import data.prod.lex
 import data.nat.basic
+import data.int.basic
 import algebra.order.ring.lemmas
 
 section N
@@ -76,6 +78,42 @@ def N_add_comm' : ∀ n m:N, N_add n m = N_add m n
   refine congr_arg s _,
   exact N_add_comm n m,
 end
+
+inductive even : N → Prop 
+| z_even : even z 
+| ss_even : Π(n:N) (h : even n), even (s (s n))
+open even
+
+def is_even : N → Prop 
+| z         := true
+| (s z)     := false
+| (s (s n)) := is_even n 
+
+-- #check even.rec 
+
+def ext : Πn:N, even n → is_even n 
+| n h := even.rec (trivial : is_even z) (λ n h' t, t) h
+
+-- def is_even_eq_empty : Πn:N, ¬(even n) → is_even n = false 
+-- | n h := begin
+--   apply eq_false_of_not_eq_true,
+-- end
+
+-- def even_dec : Πn:N, even n ∨ ¬ even n 
+-- | z := or.inl z_even
+-- | (s z) := or.inr (λ h, ext (s z) h)
+-- | (s (s n)) := begin
+--   cases even_dec n, {
+--     exact or.inl (ss_even n h),
+--   }, {
+--     right,
+--     intro hx,
+--     have t : is_even n.s.s := ext n.s.s hx,
+--     have t' : is_even n := t,
+    
+--   }
+-- end
+
 end N
 
 @[class]
@@ -96,28 +134,37 @@ def to_Z_alt : ℤ → Z_alt := id
 def of_Z_alt : Z_alt → ℤ := id 
 
 instance : group' Z_alt := {
-  mul := λ m n, m + n + 1, 
-  mul_assoc := λ m n k,
-    calc m + n + 1 + k + 1 = m + (n + 1 + k + 1) : by rw int.add_assoc m (n+1+k) 1
-    ...                    = m + (n + 1 + k) + 1 : by sorry
-    ...                    = m + (n + (1 + k)) + 1 : by sorry
-    ...                    = m + (n + (k + 1)) + 1 : by sorry
-    ...                    = m + (n + k + 1) + 1 : by sorry,
-  one := int.zero,
-  inv := λ m, int.neg m,
-  one_mul := λ m, int.zero_add m,
-  mul_one := λ m, int.add_zero m,
-  mul_inv := λ m, int.add_neg_self m,
+  mul := λ m n, m + 1 + n, 
+  mul_assoc := λ m n k, begin
+    rw int.add_assoc,
+    rw int.add_assoc,
+    conv in (n + (1 + k)) {rw ←int.add_assoc,},
+  end,
+  one := to_Z_alt (-1),
+  inv := λ m, to_Z_alt ((-1) + (-of_Z_alt m) + (-1)),
+  one_mul := λ m, begin
+    exact int.zero_add m,
+  end,
+  mul_one := λ m, begin
+    rw int.add_assoc,
+    nth_rewrite 1 int.add_comm,
+    exact int.add_zero m,
+  end,
+  mul_inv := λ m, begin
+    rw [to_Z_alt, of_Z_alt, id.def, id.def, id.def, int.add_assoc, int.add_assoc],
+    conv in ((-1:ℤ) + (1 + m)) {rw ←int.add_assoc,},
+    simp,
+  end,
 }
 
-instance (G S : Type*) [gs : group G] : group (S → G) := {
-  mul := λf g, λs, mul (f s) (g s),
-  mul_assoc := λf g h, begin apply funext, intro s, rw mul_assoc, end,
-  one := λ_, one,
-  inv := λf, λs, inv (f s),
-  one_mul := λg, begin apply funext, intro s, rw one_mul, end,
-  mul_one := λg, begin apply funext, intro s, rw mul_one, end ,
-  mul_inv := λg, begin apply funext, intro s, rw mul_inv, end,
+instance (G S : Type*) [gs : group' G] : group' (S → G) := {
+  mul := λf g, λs, gs.mul (f s) (g s),
+  mul_assoc := λf g h, begin apply funext, intro s, rw gs.mul_assoc, end,
+  one := λ_, gs.one,
+  inv := λf, λs, gs.inv (f s),
+  one_mul := λg, begin apply funext, intro s, rw gs.one_mul,end,
+  mul_one := λg, begin apply funext, intro s, rw gs.mul_one, end ,
+  mul_inv := λg, begin apply funext, intro s, rw gs.mul_inv, end,
 }
 
 inductive my_acc {S : Type*} (r : S → S → Prop) : S → Prop 
@@ -211,40 +258,6 @@ example (A B : Prop) : (¬ A) → (A ∨ B) → B := begin
   }
 end
 
-#check eq.subst
 
 
-inductive even : N → Prop 
-| z_even : even z 
-| ss_even : Π(n:N) (h : even n), even (s (s n))
-open even
 
-def is_even : N → Prop 
-| z         := true
-| (s z)     := false
-| (s (s n)) := is_even n 
-
-#check even.rec 
-
-def ext : Πn:N, even n → is_even n 
-| n h := even.rec (trivial : is_even z) (λ n h' t, t) h
-
-def is_even_eq_empty : Πn:N, ¬(even n) → is_even n = false 
-| n h := begin
-  apply eq_false_of_not_eq_true,
-end
-
-def even_dec : Πn:N, even n ∨ ¬ even n 
-| z := or.inl z_even
-| (s z) := or.inr (λ h, ext (s z) h)
-| (s (s n)) := begin
-  cases even_dec n, {
-    exact or.inl (ss_even n h),
-  }, {
-    right,
-    intro hx,
-    have t : is_even n.s.s := ext n.s.s hx,
-    have t' : is_even n := t,
-    
-  }
-end
