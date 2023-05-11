@@ -7,6 +7,7 @@ import algebra.big_operators.basic
 import logic.function.basic
 import logic.basic
 import monomial_order
+import initial_term
 import utils
 
 noncomputable theory
@@ -17,8 +18,6 @@ open mv_polynomial classical
 universe u 
 variables {σ : Type*} [finite σ] [decidable_eq σ] [term_order σ]
 variables {R : Type*} [field R] [decidable_eq R]
-
-
 
 -- Assuming (LT f) ∣ (LT g) returns (LT g)/(LT f).
 def monomial_div (g f: mv_polynomial σ R) (h : (LT f) ∣ (LT g)) : mv_polynomial σ R :=
@@ -32,93 +31,13 @@ begin
   exact degrees_zero,
 end
 lemma monomial_div_nonzero (g f: mv_polynomial σ R) (h : (LT f) ∣ (LT g)) (hg : g ≠ 0) (hf : f ≠ 0) : monomial_div g f h ≠ 0 := begin
-  rw [monomial_div],
+  rw monomial_div,
   intro hX,
   rw [monomial_eq_zero, div_eq_zero_iff] at hX,
   cases hX,
   { exact (coeff_IN_nonzero g hg) hX},
   { exact (coeff_IN_nonzero f hf) hX},
 end
-
-lemma erase_IN' (f s : mv_polynomial σ R) (hf : f ≠ 0) (hs : s ≠ 0) (hsf : s - f ≠ 0) (h : LT f = LT s) : IN (s - f) ≠ IN s:= begin
-  suffices h2 : coeff (IN s) (s - f) = 0, {
-    intro hX,
-    have h2' := coeff_IN_nonzero (s - f) hsf,
-    rw hX at h2',
-    exact h2' h2,
-  },
-  rw [LT, LT, monomial_eq_monomial_iff] at h,
-  rw [sub_eq_add_neg, coeff_add, coeff_neg],
-  cases h, {
-    cases h with hIN h_coeff,
-    nth_rewrite 0 ←h_coeff,
-    rw [hIN, add_neg_self],
-  }, {
-    exfalso,
-    exact coeff_IN_nonzero f hf h.1,
-  }
-end
-lemma erase_IN (f s : mv_polynomial σ R) (h : (LT f) ∣ (LT s)) (hf : f ≠ 0) (hs : s ≠ 0) (hs' : s - (monomial_div s f h)*f ≠ 0) : IN (s - (monomial_div s f h)*f) < IN s:=
-begin
-  -- apply ne.lt_of_le, swap,
-  rw sub_eq_add_neg,
-  have IN_le_max := IN_add_le_max f s hf hs,
-  have f_le_s : IN f ≤ IN s := begin
-    rw [LT, LT, monomial_dvd_monomial] at h,
-    rcases h with ⟨hIN, _⟩,
-    rw or_iff_right (coeff_IN_nonzero s hs) at hIN,
-    cases has_exists_add_of_le.exists_add_of_le hIN with v hv,
-    rw hv,
-    apply weaken_le,
-    exact le_refl _,
-  end,
-  have IN_le_max' := IN_add_le_max s (-(monomial_div s f h * f)) hs begin
-    rw [neg_ne_zero, ←zero_mul f],
-    intro hX,
-    have hX' := is_domain.mul_right_cancel_of_ne_zero hf hX,
-    exact monomial_div_nonzero s f h hs hf hX',
-  end,
-  have h' := h,
-  rw [LT, LT, monomial_dvd_monomial] at h,
-  cases h with h _,
-  rw or_iff_right (coeff_IN_nonzero s hs) at h,
-  conv at IN_le_max' in (IN (-(monomial_div s f _ * f))) {
-    rw monomial_div,
-    rw IN_neg,
-    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    conv {
-      congr,
-      rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    },
-    rw mv_term.sub_add_cancel (IN s) (IN f) h,
-  },
-  rw max_self at IN_le_max',
-  refine ne.lt_of_le _ IN_le_max',
-  rw ←sub_eq_add_neg,
-  apply erase_IN' _ s (mul_ne_zero (monomial_div_nonzero s f h' hs hf) hf) hs hs' _,
-  rw [LT, LT, monomial_eq_monomial_iff],
-  left,
-  split, {
-    rw monomial_div,
-    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    rw mv_term.sub_add_cancel (IN s) (IN f) h,
-  }, {
-    rw monomial_div,
-    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
-    rw mv_term.sub_add_cancel (IN s) (IN f) h,
-    rw mul_comm,
-    rw coeff_mul_monomial',
-    simp *,
-    rw [mv_term.sub_sub_self _ _ h],
-    conv  {
-      to_lhs,
-      rw mul_div_cancel' (coeff (IN s) s) (coeff_IN_nonzero f hf)
-    },
-  }
-end
-
 
 noncomputable def fin_find' {n : ℕ} (p : fin n → Prop) (h : ∃ i, p i) : fin n :=
   @option.get (fin n) (@fin.find _ (λ i, p i) (dec_pred _)) ((@fin.is_some_find_iff _ _ (dec_pred _)).mpr h)
@@ -138,13 +57,13 @@ def mv_div_step {n : ℕ} (f : mv_polynomial σ R) (F : fin n → mv_polynomial 
     (λ h, (a, r + (LT s), s - (LT s)))
 
 lemma mv_div_step_inv1 {n : ℕ}
-                    (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R)
-                    (a : fin n → mv_polynomial σ R) (r : mv_polynomial σ R)
-                    (s : mv_polynomial σ R)
-                    (h : f = (∑ i, (a i)*(F i)) + r + s) :
-                    (f = ∑ i, ((mv_div_step f F a r s).fst i)*(F i) +
-                         (mv_div_step f F a r s).snd.fst +
-                         (mv_div_step f F a r s).snd.snd ) := 
+  (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R)
+  (a : fin n → mv_polynomial σ R) (r : mv_polynomial σ R)
+  (s : mv_polynomial σ R)
+  (h : f = (∑ i, (a i)*(F i)) + r + s) :
+  (f = ∑ i, ((mv_div_step f F a r s).fst i)*(F i) +
+        (mv_div_step f F a r s).snd.fst +
+        (mv_div_step f F a r s).snd.snd ) := 
   begin
     by_cases he : (∃i, (LT (F i)) ∣ (LT s)), {
       rw h,
@@ -216,20 +135,17 @@ lemma mv_div_step_inv1 {n : ℕ}
 
 lemma coeff_monomial_ne_zero (c m : σ →₀ ℕ) (r : R) (h : ¬(coeff c (monomial m r) = 0)) : m = c := begin
   rw coeff_monomial at h,
-  by_cases hc : m = c, {
-    exact hc,
-  }, {
-    simp [hc] at h,
-    contradiction,
-  }
+  by_contradiction hc,
+  simp [hc] at h,
+  contradiction,
 end
 lemma mv_div_step_inv2 {n : ℕ}
-                          (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R) 
-                          (a : fin n → mv_polynomial σ R) (r : mv_polynomial σ R)
-                          (s : mv_polynomial σ R)
-                          (h1 : f = (∑i, (a i) * (F i)) + r + s)
-                          (h2 : r = 0 ∨ ∀(m : fin n) (c ∈ r.support), ¬ LT (F m) ∣ monomial c 1) :
-                          ((mv_div_step f F a r s).snd.fst = 0 ∨ ∀(m : fin n)(c ∈ (mv_div_step f F a r s).snd.fst.support), ¬ LT (F m) ∣ monomial c 1) :=
+  (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R) 
+  (a : fin n → mv_polynomial σ R) (r : mv_polynomial σ R)
+  (s : mv_polynomial σ R)
+  (h1 : f = (∑i, (a i) * (F i)) + r + s)
+  (h2 : r = 0 ∨ ∀(m : fin n) (c ∈ r.support), ¬ LT (F m) ∣ monomial c 1) :
+  ((mv_div_step f F a r s).snd.fst = 0 ∨ ∀(m : fin n)(c ∈ (mv_div_step f F a r s).snd.fst.support), ¬ LT (F m) ∣ monomial c 1) :=
 begin
   rw mv_div_step,
   by_cases h : (∃ (i : fin n), LT (F i) ∣ LT s), {
@@ -284,55 +200,119 @@ begin
   }
 end
 
-variables {n : ℕ} (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R)
-lemma mv_div_step_decreases : Π(a : fin n → mv_polynomial σ R)
-        (r : mv_polynomial σ R) (s : mv_polynomial σ R)
-        (hs : s ≠ 0),
-        (IN' (mv_div_step f F a r s).snd.snd < IN' s)
+lemma erase_IN (f s : mv_polynomial σ R) (h : (LT f) ∣ (LT s)) (hf : f ≠ 0) (hs : s ≠ 0) (hs' : s - (monomial_div s f h)*f ≠ 0) : IN (s - (monomial_div s f h)*f) < IN s:=
+begin
+  rw sub_eq_add_neg,
+  have IN_le_max := IN_add_le_max f s hf hs,
+  have f_le_s : IN f ≤ IN s := begin
+    rw [LT, LT, monomial_dvd_monomial] at h,
+    rcases h with ⟨hIN, _⟩,
+    rw or_iff_right (coeff_IN_nonzero s hs) at hIN,
+    cases has_exists_add_of_le.exists_add_of_le hIN with v hv,
+    rw hv,
+    apply weaken_le,
+    exact le_refl _,
+  end,
+  have IN_le_max' := IN_add_le_max s (-(monomial_div s f h * f)) hs begin
+    rw [neg_ne_zero, ←zero_mul f],
+    intro hX,
+    have hX' := is_domain.mul_right_cancel_of_ne_zero hf hX,
+    exact monomial_div_nonzero s f h hs hf hX',
+  end,
+  have h' := h,
+  rw [LT, LT, monomial_dvd_monomial] at h,
+  cases h with h _,
+  rw or_iff_right (coeff_IN_nonzero s hs) at h,
+  conv at IN_le_max' in (IN (-(monomial_div s f _ * f))) {
+    rw [monomial_div, IN_neg],
+    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    conv {
+      congr,
+      rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    },
+    rw mv_term.sub_add_cancel (IN s) (IN f) h,
+  },
+  rw max_self at IN_le_max',
+  refine ne.lt_of_le _ IN_le_max',
+  rw ←sub_eq_add_neg,
+  apply erase_IN' _ s (mul_ne_zero (monomial_div_nonzero s f h' hs hf) hf) hs hs' _,
+  rw [LT, LT, monomial_eq_monomial_iff],
+  left,
+  split, {
+    rw monomial_div,
+    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    rw mv_term.sub_add_cancel (IN s) (IN f) h,
+  }, {
+    rw monomial_div,
+    rw IN_mul f hf _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    rw IN_monomial _ _ (div_ne_zero (coeff_IN_nonzero s hs) (coeff_IN_nonzero f hf)),
+    rw mv_term.sub_add_cancel (IN s) (IN f) h,
+    rw mul_comm,
+    rw coeff_mul_monomial',
+    simp *,
+    rw mv_term.sub_sub_self _ _ h,
+    conv  {
+      to_lhs,
+      rw mul_div_cancel' (coeff (IN s) s) (coeff_IN_nonzero f hf)
+    },
+  }
+end
+
+lemma mv_div_step_decreases {n : ℕ} (f : mv_polynomial σ R)
+  (F : fin n → mv_polynomial σ R) :
+  Π(a : fin n → mv_polynomial σ R)
+  (r : mv_polynomial σ R) (s : mv_polynomial σ R)
+  (hs : s ≠ 0),
+  (IN' (mv_div_step f F a r s).snd.snd < IN' s)
 | a r s hs := begin
   by_cases hs' : (mv_div_step f F a r s).snd.snd = 0, {
     rw [hs', IN'_eq_IN _ hs, IN'_eq_bot 0 _],
     exact with_bot.bot_lt_coe _,
     refl,
-  },
-  suffices H : IN (mv_div_step f F a r s).snd.snd < IN s, {
-    rw [IN'_eq_IN _ hs', IN'_eq_IN _ hs, with_bot.coe_lt_coe],
-    exact H,
-  },
-  rw mv_div_step,
-  rw mv_div_step at hs',
-  by_cases hi : (∃ (i : fin n), LT (F i) ∣ LT s), {
-    simp * at *,
-    have hF : LT (F (fin_find' _ hi)) ∣ LT s := fin_find'_p _ hi,
-    refine erase_IN _ s _ _ hs hs',
-    intro hX,
-    rw [hX, LT_zero, zero_dvd_iff] at hF,
-    exact hs (eq_zero_of_LT_eq_zero s hF),
   }, {
-    simp * at *,
-    rw IN_of_non_zero_eq _ hs',
-    conv {
-      to_lhs,
-      congr,
+    suffices H : IN (mv_div_step f F a r s).snd.snd < IN s, {
+      rw [IN'_eq_IN _ hs', IN'_eq_IN _ hs, with_bot.coe_lt_coe],
+      exact H,
+    },
+    rw mv_div_step,
+    rw mv_div_step at hs',
+    by_cases hi : (∃ (i : fin n), LT (F i) ∣ LT s), {
+      simp [hi] at hs',
+      simp [hi],
+      have hF : LT (F (fin_find' _ hi)) ∣ LT s := fin_find'_p _ hi,
+      refine erase_IN _ s _ _ hs hs',
+      intro hX,
+      rw [hX, LT_zero, zero_dvd_iff] at hF,
+      exact hs (eq_zero_of_LT_eq_zero s hF),
+    }, {
+      simp [hi] at hs',
+      simp [hi],
+      rw IN_of_non_zero_eq _ hs',
       conv {
+        to_lhs,
         congr,
-        rw [LT, ←single_eq_monomial, coeff, ←finsupp.erase_eq_sub_single _ _]
+        conv {
+          congr,
+          rw [LT, ←single_eq_monomial, coeff, ←finsupp.erase_eq_sub_single _ _],
+        },
+        rw [support, finsupp.support_erase, IN_of_non_zero_eq _ hs],
       },
-      rw [support, finsupp.support_erase, IN_of_non_zero_eq _ hs],
-    },
-    conv {
-      to_rhs,
-      rw IN_of_non_zero_eq _ hs,
-    },
-    refine finset.lt_max'_of_mem_erase_max' _ _ _,
-    exact finset.max'_mem _ _,
+      conv {
+        to_rhs,
+        rw IN_of_non_zero_eq _ hs,
+      },
+      refine finset.lt_max'_of_mem_erase_max' _ _ _,
+      exact finset.max'_mem _ _,
+    }
   }
 end
 
-noncomputable def mv_div_aux {n : ℕ} (f : mv_polynomial σ R) (F : fin n → mv_polynomial σ R) :
-                       (fin n → mv_polynomial σ R) ×
-                       (mv_polynomial σ R) × (mv_polynomial σ R) →
-                       (fin n → mv_polynomial σ R) × (mv_polynomial σ R) × (mv_polynomial σ R)
+noncomputable def mv_div_aux {n : ℕ} (f : mv_polynomial σ R)
+  (F : fin n → mv_polynomial σ R) :
+  (fin n → mv_polynomial σ R) ×
+  (mv_polynomial σ R) × (mv_polynomial σ R) →
+  (fin n → mv_polynomial σ R) × (mv_polynomial σ R) × (mv_polynomial σ R)
 | ⟨ a, r, s ⟩  := 
   if hs : s = 0 then
     (a, r, s)
@@ -348,15 +328,24 @@ noncomputable def mv_div_aux {n : ℕ} (f : mv_polynomial σ R) (F : fin n → m
     }],
     dec_tac := `[exact this],
   }
-lemma mv_div_aux_s_eq_zero : ΠN:(fin n → mv_polynomial σ R) × 
-                             (mv_polynomial σ R) × (mv_polynomial σ R), (mv_div_aux f F N).snd.snd = 0
+
+lemma mv_div_aux_s_eq_zero {n : ℕ} (f : mv_polynomial σ R)
+  (F : fin n → mv_polynomial σ R) :
+  ΠN:(fin n → mv_polynomial σ R) × 
+  (mv_polynomial σ R) × (mv_polynomial σ R),
+  (mv_div_aux f F N).snd.snd = 0
 | ⟨ a, r, s ⟩ := 
   if hs : s = 0 then
-    begin rw mv_div_aux, simp *, end
+    begin
+      rw mv_div_aux, simp [hs],
+    end
   else
     have (IN' (mv_div_step f F a r s).snd.snd) < (IN' s),
           from mv_div_step_decreases f F a r s hs,
-    begin rw mv_div_aux, simp *, end
+    begin
+      rw mv_div_aux, simp [hs],
+      exact mv_div_aux_s_eq_zero (mv_div_step f F a r s),
+    end
     using_well_founded {
       rel_tac := λ _ _, `[exact {
         r := λN M, IN' N.snd.snd < IN' M.snd.snd,
@@ -365,10 +354,12 @@ lemma mv_div_aux_s_eq_zero : ΠN:(fin n → mv_polynomial σ R) ×
       dec_tac := `[exact this],
     }
 
-lemma mv_div_aux_spec1 : Π (N:(fin n → mv_polynomial σ R) × 
-                             (mv_polynomial σ R) × (mv_polynomial σ R))
-                             (h : f = (∑i, (N.fst i) * (F i)) + N.snd.fst + N.snd.snd ),
-                         f = (∑i, (mv_div_aux f F N).fst i * F i) + (mv_div_aux f F N).snd.fst + (mv_div_aux f F N).snd.snd
+lemma mv_div_aux_spec1 {n : ℕ} (f : mv_polynomial σ R)
+  (F : fin n → mv_polynomial σ R) :
+  Π (N:(fin n → mv_polynomial σ R) × 
+  (mv_polynomial σ R) × (mv_polynomial σ R))
+  (h : f = (∑i, (N.fst i) * (F i)) + N.snd.fst + N.snd.snd ),
+  f = (∑i, (mv_div_aux f F N).fst i * F i) + (mv_div_aux f F N).snd.fst + (mv_div_aux f F N).snd.snd
 | ⟨ a, r, s ⟩ h :=
   if hs : s = 0 then
     begin
@@ -407,11 +398,13 @@ lemma field_dvd (a b : R) (H : a ≠ 0) : a ∣ b := begin
   rw one_mul,
 end
 
-lemma mv_div_aux_spec2 : Π(N:(fin n → mv_polynomial σ R) × 
-                             (mv_polynomial σ R) × (mv_polynomial σ R))
-                          (h1 : f = (∑i, (N.fst i) * (F i)) + N.snd.fst + N.snd.snd)
-                          (h2 : N.snd.fst = 0 ∨ ∀(m : fin n) (c ∈ N.snd.fst.support), ¬ LT (F m) ∣ monomial c 1),
-                          ((mv_div_aux f F N).snd.fst = 0 ∨ ∀(m : fin n)(c ∈ (mv_div_aux f F N).snd.fst.support), ¬ LT (F m) ∣ monomial c 1)
+lemma mv_div_aux_spec2 {n : ℕ} (f : mv_polynomial σ R)
+  (F : fin n → mv_polynomial σ R) :
+  Π(N:(fin n → mv_polynomial σ R) × 
+  (mv_polynomial σ R) × (mv_polynomial σ R))
+  (h1 : f = (∑i, (N.fst i) * (F i)) + N.snd.fst + N.snd.snd)
+  (h2 : N.snd.fst = 0 ∨ ∀(m : fin n) (c ∈ N.snd.fst.support), ¬ LT (F m) ∣ monomial c 1),
+  ((mv_div_aux f F N).snd.fst = 0 ∨ ∀(m : fin n)(c ∈ (mv_div_aux f F N).snd.fst.support), ¬ LT (F m) ∣ monomial c 1)
 | ⟨ a, r, s ⟩ h1 h2 := 
   if hs : s = 0 then
     begin

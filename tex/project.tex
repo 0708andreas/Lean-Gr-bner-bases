@@ -151,7 +151,7 @@
 The following is a project, in which I try to learn how to do formalized mathematics, using Lean as my proof checker. This document is a report on my learnings, and is intended as a resource for other mathematicians, who may wish to learn about Lean. 
 
 \section{Martin-Löf dependent type theory}\label{sec:tt}
-Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system.
+Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system. The development will largely follow the exposition of \cite{rijke2022introduction}.
 
 We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of inductive constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean have made, makes sense. If you're only interested in learning Lean, feel free to skip this section.
 
@@ -489,7 +489,7 @@ All these inference rules are quite heavy. Let's introduce some lighter notation
   | succ$_\N$ : $\N \to \N$
 \end{lstlisting}
 
-Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n).\] For a more thorough derivation of the induction principle, see section~\ref{sec:ind} in the appendix. We can similarly define
+Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n).\] The derived induction principle is the cornerstone of the Calculus of Inductive Constructions, which is the logic that Lean is built on.\footnote{Not all type theories include automatically derived induction principles. In some cases, it clashes with additional structure, you may wish to put on your types. You can work around that, if you want to, and the derived induction principle provides a principled way to develop the theory of mathematics.} For a more thorough derivation of the induction principle, see section~\ref{sec:ind} in the appendix. We can similarly define
 
 \begin{lstlisting}[mathescape=true]
   type $\vdash$ A$\lor$B
@@ -1043,7 +1043,7 @@ The most well-known well-order is the usual order on the natural numbers. In the
 
 Now, the reason well-orders are good for recursive functions is the following:
 
-\begin{proposition}
+\begin{proposition}\label{thm:well_order_terminates}
   Let $\leq$ be a well-order on $S$ and $\{a_{i}\}$ be a strictly decreasing sequence of elements in $S$. Then $a_{i}$ is a finite sequence. 
 \end{proposition}
 \begin{proof}
@@ -1378,7 +1378,7 @@ In order to define Gröbner bases, we need the notion of a term order:
 
 To carry this definition over to Lean, we need a type alias, see section~\ref{sss:typealias}, to avoid using the default pointwise ordering defined on functions.
 
-\inputminted[firstline=24, lastline=28]{lean}{../src/monomial_order.lean}
+\inputminted[firstline=21, lastline=25]{lean}{../src/monomial_order.lean}
 
 Let's prove a simple lemma about term orders, that we're going to need later:
 
@@ -1388,7 +1388,7 @@ Let's prove a simple lemma about term orders, that we're going to need later:
 \begin{proof}
   Since $0 \le v_{2}$ we have $v \le v_{1} = v_{1} + 0 \le v_{1} + v_{2}$, so the conclusion follows by transitivity.
 
-\inputminted[firstline=30, lastline=36]{lean}{../src/monomial_order.lean}
+\inputminted[firstline=38, lastline=44]{lean}{../src/monomial_order.lean}
   ~
 \end{proof}
 
@@ -1404,7 +1404,7 @@ Now, we can formulate the main theorem of this section:
 
   In lean it looks like this:
 
-  \inputminted[firstline=144, lastline=168]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=71, lastline=95]{lean}{../src/monomial_order.lean}
 \end{proof}
 
 \begin{corollary}
@@ -1413,7 +1413,7 @@ Now, we can formulate the main theorem of this section:
 \begin{proof}
   Apply theorem \ref{thm:wf_iff_wo} to theorem \ref{thm:term_order_is_well_order}
 
-  \inputminted[firstline=170, lastline=177]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=97, lastline=104]{lean}{../src/monomial_order.lean}
   ~
 \end{proof}
 
@@ -1429,14 +1429,14 @@ When dividing one polynomial by another, we want to start with the largest term.
   We denote by $\LT(f)$ the monomial ocurring as a summand in $f$ with term $\IN(f)$.
 
   In Lean:
-  \inputminted[firstline=69, lastline=75]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=21, lastline=25]{lean}{../src/initial_term.lean}
 \end{definition}
 
 Note, that we have defined \lean{IN 0 := 0} even though usually we don't define the initial term of a polynomial with no terms. This is standard practice in Lean, to have the function defined on the entire domain. Similarly, the square root, \lean{real.sqrt : ℝ → ℝ} is defined for negative reals, but theorems about square roots assume $x$ to be positive. That way, you don't have to supply a proof that your number is positive every time you take a square root, only when you want to prove something about it.
 
 When we do these kinds of ``broadenings,'' it's convenient to have theorem stating the definition within the usual domain:
 
-\inputminted[firstline=77, lastline=81]{lean}{../src/monomial_order.lean}
+\inputminted[firstline=45, lastline=49]{lean}{../src/initial_term.lean}
 
 Let's prove a quick lemma:
 
@@ -1445,9 +1445,11 @@ Let's prove a quick lemma:
 \end{lemma}
 \begin{proof}
   ~
-  \inputminted[firstline=82, lastline=87]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=50, lastline=54]{lean}{../src/initial_term.lean}
   ~
 \end{proof}
+
+We're goin to need a lot more lemmas like this. They live in the appendix, section~\ref{app:IN}
 
 Now, we get to Gröbner bases.
 
@@ -1487,7 +1489,94 @@ When we do the division algorithm, we'll be able to prove that a Gröbner basis 
 \end{proof}
 
 \subsection{The division algorithm}
-The division algorithm for multivariate polynomials is a generalization of the usual division algorithm for polynomials in a single variable.
+The division algorithm for multivariate polynomials is a generalization of the usual division algorithm for polynomials in a single variable. The algorithm is captured in the proof of the following proposition.
+
+\begin{proposition}
+  Let $f \in k[x_{1}, \dots, x_{n}]$ be a polynomial over a field $k$, let $\le$ be a term order and let $F_{1, \dots, F_{m}} \in k[x_{1}, \dots, x_{n}]$ be a set of non-zero polynomials.
+
+  Then there exists a set of polynomials $h_{1}, \dots, h_{n}, r \in k[x_{1}, \dots, x_{n}]$ such that \[f = h_{1}F_{1} + \dots + h_{m} F_{m} + r\] where either $r = 0$ or no term of $r$ is divisible by $\LT(F_{i})$ for any $i \in \{1, \dots, m\}$.
+\end{proposition}
+\begin{proof}
+  To start, set $s \leftarrow f$ and set $r \leftarrow, h_{1} \leftarrow 0 \dots, h_{m} \leftarrow 0$. If $s = 0$ we are done. If not, consider $\IN(s)$.
+
+  \begin{itemize}
+    \item If there exists an $i$ such that $\IN(F_{i}) \mid \IN(s)$, choose the smallest such $i$ and set
+      \[s \leftarrow s - \frac{\IN(s)}{\IN(F_{i})} F_{i}\]
+      \[h_{i} \leftarrow h_{i} + \frac{\IN(s)}{\IN(F_{i})}\]
+    \item Otherwise set
+      \[s \leftarrow s - \IN(s)\]
+      \[r \leftarrow r + \IN(s)\]
+  \end{itemize}
+
+  Repeat this procedure until $s = 0$. Since the initial term of $s$ always strictly decreases, this will terminate within a finite number of steps, pr. lemma~\ref{thm:term_order_is_well_order} and proposition \ref{thm:well_order_terminates}
+
+  Each step maintains the invariant that \[f = h_{1}F_{1} + \dots + h_{m}F_{m} + r + s\] and at the end we have $s = 0$, so we get \[f = h_{1}F_{1} + \dots + h_{m}F_{m} + r.\]
+
+  Furthermore, we only add terms to $r$ that are not divisible by any intial term of any $F_{i}$, so the last assertion holds as well.
+\end{proof}
+
+In Lean, this proposition is split into two parts: first is a function, that computes the $h_{i}$ and $r$. Second is the proof that the results of this function satisfies the properties above. First we define a function, that performs a single step in the division algorithm:
+
+\inputminted[firstline=49, lastline=57]{lean}{../src/mv_division.lean}
+
+Note that \lean{@dite _ (P) _ (λ h, a) (λ h, b)} is actually \lean{if h : P then a else b}, but we need to explicitly provide Lean with a proof that \lean{P} is decidable. Thus, the funny notation.
+
+In the above we use the function \lean{monomial_div}. It is defined as follows:
+
+\inputminted[firstline=22, lastline=24]{lean}{../src/mv_division.lean}
+
+Now, before we can define the actual algorithm, there is one more technical challenge we need to overcome: if the polynomial $s$ is a constant polynomial, then $\IN(s) = 0$. In this case, the initial term doesn't decrease in the recursive step, since in the next step we will get to $s = 0$ and $\IN(0) = 0$. It's not a problem, because in that case the next step of the algorithm will be the last, but Lean doesn't know that.
+
+We fix this by defining a variant of the inital term: \lean{IN' s : with_bot (mv_term σ))}, which is equal to \lean{IN s} when $s \ne 0$, but is a special value \lean{⊥} when $s = 0$. We can extend the ordering, so that \lean{⊥ < t} for all terms $t$. This is still a well-order, and now we can use that \lean{IN'} strcitly decreases in every step.
+
+\begin{definition} Alternative version of $\IN$.
+
+  \inputminted[firstline=26, lastline=30]{lean}{../src/initial_term.lean}
+\end{definition}
+
+\begin{lemma} The domain of \lean{IN'} (i.e. \lean{with_bot (mv_term σ)}) is well-ordered
+\end{lemma}
+\begin{proof}
+  ~
+  \inputminted[firstline=105, lastline=108]{lean}{../src/monomial_order.lean}
+  ~
+\end{proof}
+
+And now we can finally state the division algorithm:
+
+\inputminted[firstline=311, lastline=330]{lean}{../src/mv_division.lean}
+
+The structure of this definition is as follows: given \lean{(a, r, s)} we check if \lean{s=0}. If so, we are done, and simply return the input. If not, we first prove that the recursive call we're about to do decreases in the third argument with respect to \lean{IN'}. Note, a tuple \lean{(a, r, s)} is actually \lean{(a, (r, s))}, so the third entry is the second entry of the second entry, hence the \lean{(...).snd.snd}. The proof of this is delegated to the lemma \lean{mv_div_step_decreases}. Finally, we perform a single step of the division algorithm, and call ourselves recursively.
+
+After the main body, there is a \lean{using_well_founded} block, where we tell Lean which well-order relation to prove. We use the lemma \lean{inv_image.is_well_founded}, which states that if we have a function $f : \alpha \to \beta$ and $\beta$ is well-ordered, then we get a well-order\footnote{Technically, we get a well-founded relation, but that relation is not an order. Well-foundedness still works, though.} on $\alpha$ given by $a_{1} < a_{2} \iff f(a_{1}) < f(a_{2})$. We use this, because the input to the function is of type \lean{(fin n → mv_polynomial σ R) ×
+  (mv_polynomial σ R) × (mv_polynomial σ R)} so we use \lean{λ N, IN' N.snd.snd} to get into \lean{with_bot (mv_term σ)} where we have a well-order. Finally, we tell \lean{dec_tac} to use the proof that we gave above, to show that the recursive call decreases.
+
+Let's take a moment to orient ourselves. We identified some technical problems, that we needed to fix, before we could state the division algorithm. Then we wrote down a single step of the algorith. Finally, we wrote the recursive algorithm, that performs the step until we're finished, and proved that it terminates using well-foundedness. We didn't \textit{actually} prove that the recursive call decreases, I'll let you read the proof on your own if you want to.
+
+So now, we need to prove that the algorithm behaves the way we want it to. Just to get started, let's show something very simple: when \lean{mv_div_aux} terminates, \lean{s = 0}. You might just look at it and say ``obviously, in the base case we have \lean{s = 0}, and that's the only thing that matters,'' but nothing is that simple in Lean. Instead, we prove it inductively: we show that \lean{s = 0} in the base case, and that it is preserved in the recursive steps.
+
+\inputminted[firstline=332, lastline=350]{lean}{../src/mv_division.lean}
+
+The proof is not dificult, it is just a matter of unfolding definitions and checking that it is true, but it shows how we do proofs about recursive functions.
+
+Now, let's prove that we have \[f = h_{1}F_{1} + \dots + h_{m}F_{m} + r + s\]
+
+First, we prove that if the equality already holds for some $h_{1}, \dots, h_{m}, r, s$, then it still holds after applying \lean{mv_div_step}:
+
+\inputminted[firstline=59, lastline=66]{lean}{../src/mv_division.lean}
+
+The proof is long and tedious, so look it up if you want to. We're just going to use it:
+
+\inputminted[firstline=357, lastline=386]{lean}{../src/mv_division.lean}
+
+And similarly we can prove that the remainder is either zero or indivisible in any term by any leading term of the $F_{i}$'s.
+
+
+
+
+
+
+
 
 
 
@@ -1596,14 +1685,19 @@ eq.rec :
 \begin{itemize}
   \item[intro/intros]
   \item[rw]
+  \item[exact]
   \item[have/let]
+  \item[suffices]
   \item[apply/refine]
   \item[split/left/right]
   \item[cases]
+  \item[rcases]
   \item[induction]
+  \item[by\_contra]
+  \item[conv]
 \end{itemize}
 
-\section{A monoid structure on \lean{vector N n}}\label{lean:vector_add_monoid}
+\section{A monoid structure on \texttt{vector N n}}\label{lean:vector_add_monoid}
 \inputminted{lean}{../src/vector_add_monoid.lean}
 
 \section{A preimage of a finite set}\label{lean:single_preimage}
@@ -1613,6 +1707,11 @@ If we're given a function $f : A \to B$ and a finite set $v' = \{x'_{1}, \dots, 
 When we translate this to Lean, things get a little more complex, as we need to be working with an actual set. So we're given a function $f : \alpha \to \beta$, a set of elements from $\alpha$, $S$ and a finite set $v' \subseteq f(S)$. Then we find a finite set $v$ so that $v \subseteq S$ and $v' = f(v)$.
 
 \inputminted[firstline=14, lastline=63]{lean}{../src/dickson.lean}
+
+\section{Lemmas about the initial term}\label{app:IN}
+Note: this part of the proof is not completed. To complete the proofs, we can use \lean{admit} in some places.
+\inputminted[firstline=77, lastline=140]{lean}{../src/monomial_order.lean}
+\inputminted[firstline=27, lastline=65]{lean}{../src/mv_division.lean}
 
 
 \end{document}

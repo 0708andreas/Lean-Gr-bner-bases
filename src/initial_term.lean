@@ -14,18 +14,23 @@ import monomial_order
 universe u 
 variables {σ : Type u } {R : Type*} [field R] [finite σ] [decidable_eq σ] [decidable_eq R]
 
+noncomputable theory
+
 open mv_polynomial
 
-noncomputable def IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : (mv_term σ) :=
+def IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : (mv_term σ) :=
   if h : (f = 0) then
     0
   else 
     finset.max' f.support (mv_polynomial.non_empty_support_of_ne_zero f h)
-noncomputable def IN' {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : with_bot (mv_term σ) :=
+def IN' {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : with_bot (mv_term σ) :=
   if h : f = 0 then
     ⊥
   else
     ↑(IN f)
+def LT {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : (mv_polynomial σ R) :=
+  mv_polynomial.monomial (IN f) (f.coeff (IN f))
+
 lemma IN'_eq_IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   IN' f = ↑(IN f) := begin
     rw [IN', dite_right h],
@@ -36,24 +41,20 @@ lemma IN'_eq_bot {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f 
     rw [IN', dite_left h],
     exact IN f,
   end
-noncomputable def LT {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) : (mv_polynomial σ R) :=
-  mv_polynomial.monomial (IN f) (f.coeff (IN f))
 
 lemma IN_of_non_zero_eq {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   IN f = finset.max' f.support (mv_polynomial.non_empty_support_of_ne_zero f h):= begin
-    rw IN,
-    simp *,
+    rw [IN, dite_right h],
+    exact IN f,
   end
 lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   coeff (IN f) f ≠ 0 := begin
-    rw ←mv_polynomial.mem_support_iff,
-    rw IN_of_non_zero_eq _ h,
+    rw [←mv_polynomial.mem_support_iff, IN_of_non_zero_eq _ h],
     exact finset.max'_mem _ _,
   end
 lemma IN_mem_support [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) :
 IN f ∈ f.support := begin
-  rw IN,
-  rw dite_right hf,
+  rw [IN, dite_right hf],
   exact finset.max'_mem _ _,
   exact IN f,
 end
@@ -148,10 +149,29 @@ IN ((monomial s c)*f) = IN (monomial s c) + IN f := begin
     exact coeff_IN_nonzero f hf,
   }
 end
+
+lemma erase_IN' [term_order σ] (f s : mv_polynomial σ R) (hf : f ≠ 0) (hs : s ≠ 0) (hsf : s - f ≠ 0) (h : LT f = LT s) : IN (s - f) ≠ IN s:= begin
+  suffices h2 : coeff (IN s) (s - f) = 0, {
+    intro hX,
+    have h2' := coeff_IN_nonzero (s - f) hsf,
+    rw hX at h2',
+    exact h2' h2,
+  },
+  rw [LT, LT, monomial_eq_monomial_iff] at h,
+  rw [sub_eq_add_neg, coeff_add, coeff_neg],
+  cases h, {
+    cases h with hIN h_coeff,
+    nth_rewrite 0 ←h_coeff,
+    rw [hIN, add_neg_self],
+  }, {
+    exfalso,
+    exact coeff_IN_nonzero f hf h.1,
+  }
+end
+
 lemma nonzero_of_LT_nonzero [term_order σ] (f : mv_polynomial σ R) (h : LT f ≠ 0) : f ≠ 0 := begin
   intro hX,
-  rw hX at h,
-  rw LT_zero at h,
+  rw [hX, LT_zero] at h,
   exact h rfl,
 end
 lemma eq_zero_of_LT_eq_zero [term_order σ] (f : mv_polynomial σ R) (h : LT f = 0) : f = 0 := begin

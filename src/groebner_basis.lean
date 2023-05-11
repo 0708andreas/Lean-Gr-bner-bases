@@ -113,14 +113,3 @@ theorem tuple_exists_grobner_basis [term_order σ] (I : ideal (mv_polynomial σ 
     },
   end
 
-lemma span_ideal_basis (G : fin n → mv_polynomial σ R) : basis (fin n) R (span_ideal G) := begin
-  basis.mk
-end
-theorem div_zero_iff_member {n : ℕ} (f : mv_polynomial σ R) (G : fin n → mv_polynomial σ R) (H : grobner_basis G (span_ideal G)) :
-  mv_div_r f G = 0 ↔ f ∈ span_ideal G := begin
-    split, {
-      intro h,
-      rw span_ideal,
-      rw ideal.mem_span,
-    }, {}
-  end
