@@ -1319,9 +1319,9 @@ h' := h.2
 
 
 \section{Gröbner bases as an extended example}
-In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal,'' informal proofs and the proofs in Lean, to get an understanding of the difference. The full code for this example can be found at
+In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal,'' informal proofs and the proofs in Lean, to get an understanding of the difference. The full code for this example can be found at \url{https://github.com/0708andreas/Lean-Gr-bner-bases}
 
-We'll proceed as follows: first, we prove Dicksons lemma, which will later enable us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases, and prove that they exist for all ideals. Finally, we define the multivariate division algorithm, and prove its basic properties. Notably, since I ran out of time, we do not prove that division by a Gröbner basis is independent of ordering, and we don't prove that a polynomial reduces to zero under division with a Gröbner basis if and only if it is in the ideal spanned by the basis.
+We'll proceed as follows: first, we prove Dicksons lemma, which will later enable us to prove that every ideal in a polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases, and prove that they exist for all ideals. Finally, we define the multivariate division algorithm, and prove its basic properties. Notably, since I ran out of time, we do not prove that division by a Gröbner basis is independent of ordering, and we don't prove that a polynomial reduces to zero under division with a Gröbner basis if and only if it is in the ideal spanned by the basis.
 
 \subsection{Dicksons lemma}
 Dicksons lemma is a sort of well-ordering theorem for $\N^{n}$, but instead of finding a single least element, we find a finite collection of least elements.
