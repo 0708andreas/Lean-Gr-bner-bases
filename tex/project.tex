@@ -150,17 +150,46 @@
 
 % / Kan Danny godt lide
 
+% \usepackage[eng,exjobb]{KTHEEtitlepage}
+
 \title{Mathematical project in \textsf{L$\exists \forall\N$}\\{\large \textsc{An innocent mathematicians guide to lean}}}
 \author{Andreas Bøgh Poulsen, studienummer: 201805425}
 
+\newcommand*{\titleGM}{%\begingroup % Create the command for including the title page in the document
+%\hbox{ % Horizontal box
+\hspace*{0.2\textwidth} % Whitespace to the left of the title page
+\rule{1pt}{\textheight} % Vertical line
+\hspace*{0.05\textwidth} % Whitespace between the vertical line and title page text
+\parbox[b]{0.75\textwidth}{ % Paragraph box which restricts text to less than the width of the page
+{\noindent\Huge\bfseries  Mathematical project in \textsf{L$\exists \forall\N$}\\{\large \textsc{An innocent mathematicians guide to lean}}\\}\\[2\baselineskip] % Title
+{\large \textit{Andreas Bøgh Poulsen \hfill 201805425 }}\\%[1\baselineskip]
+% {\large  } \\[4\baselineskip] % Tagline or further description
+{\large } % Author name
+\parbox[b][0pt]{0.5\textwidth}{
+  \hspace{2cm}\includegraphics[width=0.5\textwidth]{ausegl_sort.png}
+  \vspace{-10cm}
+}
+
+% \begin{centering}
+  % \includegraphics[width=0.5\textwidth]{ausegl_sort.png}
+% \end{centering}
+\vspace{0.5\textheight} % Whitespace between the title block and the publisher
+\vfill
+{\noindent Supervisor: Niels Lauritzen \hspace{2.5cm} \includegraphics{AU_logo.png}  }\\[\baselineskip] % Publisher and logo
+}%}
+% \endgroup
+}
+
 \begin{document}
-\maketitle
+% \maketitle
+\titleGM
+% \vfill
+% Vejleder: Niels Lauritzen
+% \strut\hfill
+% \includegraphics[right]{AU_logo.png}
+\newpage
 \tableofcontents
 
-\newpage
-\begin{abstract}
-
-\end{abstract}
 \newpage
 
 \section*{Introduction}
