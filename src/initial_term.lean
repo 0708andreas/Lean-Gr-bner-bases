@@ -33,19 +33,19 @@ def LT {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polyn
 
 lemma IN'_eq_IN {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   IN' f = ↑(IN f) := begin
-    rw [IN', dite_right h],
-    exact ⊥,
+    rw IN',
+    simp [h],
   end
 lemma IN'_eq_bot {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f = 0) :
   IN' f = ⊥ := begin
-    rw [IN', dite_left h],
-    exact IN f,
+    rw IN',
+    simp [h],
   end
 
 lemma IN_of_non_zero_eq {σ : Type u} [decidable_eq σ] [finite σ] [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   IN f = finset.max' f.support (mv_polynomial.non_empty_support_of_ne_zero f h):= begin
-    rw [IN, dite_right h],
-    exact IN f,
+    rw IN,
+    simp [h],
   end
 lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   coeff (IN f) f ≠ 0 := begin
@@ -54,19 +54,19 @@ lemma coeff_IN_nonzero [term_order σ] (f : mv_polynomial σ R) (h : f ≠ 0) :
   end
 lemma IN_mem_support [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) :
 IN f ∈ f.support := begin
-  rw [IN, dite_right hf],
+  rw IN,
+  simp only [hf, not_false_iff, dif_neg],
   exact finset.max'_mem _ _,
-  exact IN f,
 end
 @[simp]
 lemma IN_neg [term_order σ] (f : mv_polynomial σ R) : IN (-f) = IN f := begin
   rw [IN, IN],
   by_cases f = 0, {
-    have h' : -f = 0 := by simp *,
-    simp *,
+    have h' : -f = 0 := by simp [h],
+    simp [h, h'],
   }, {
-    have h' : ¬(-f = 0) := by simp *,
-    simp *, 
+    have h' : ¬(-f = 0) := by simp [h],
+    simp [h, h'], 
   }
 end
 lemma IN_add_le_max [term_order σ] (f g : mv_polynomial σ R) (hf : f ≠ 0) (hg : g ≠ 0) :
@@ -83,34 +83,32 @@ IN (f+g) ≤ max (IN f) (IN g) := begin
     cases IN_fug, {
       left,
       conv in (IN f) {rw IN,},
-      rw dite_right hf,
+      simp [hf],
       exact finset.le_max' _ _ IN_fug,
-      exact IN f,
     }, {
       right,
       conv in (IN g) {rw IN,},
-      rw dite_right hg,
+      simp [hg],
       exact finset.le_max' _ _ IN_fug,
-      exact IN g,
     }
   }
 end
 @[simp]
 lemma IN_zero [term_order σ] : IN (0 : mv_polynomial σ R) = 0 := begin
   rw IN,
-  simp *,
+  simp,
 end
 @[simp]
 lemma LT_zero [term_order σ] : LT (0 : mv_polynomial σ R) = 0 := begin
   rw LT,
-  simp *,
+  simp,
 end
 @[simp]
 lemma IN_monomial [term_order σ] (s : σ →₀ ℕ) (c : R) (hc : c ≠ 0) : IN (monomial s c) = s := begin
   rw IN,
-  simp *,
+  simp [hc],
   conv in (((monomial s) c).support) {rw support_monomial},
-  simp *,
+  simp [hc],
 end
 @[simp]
 lemma IN_mul [term_order σ] (f : mv_polynomial σ R) (hf : f ≠ 0) (s : σ →₀ ℕ) (c : R) (hc : c ≠ 0) :
@@ -123,9 +121,9 @@ IN ((monomial s c)*f) = IN (monomial s c) + IN f := begin
     rw monomial_eq_zero at hX',
     exact hc hX',
   end,
-  rw dite_right H, swap, exact 0,
+  simp [H],
   conv in (monomial s c * f) {rw mv_polynomial.mul_def},
-  simp *,
+  simp [H],
   apply eq_of_le_of_not_lt, {
     refine finset.max'_le _ _ _ _,
     intros y hy,
@@ -135,7 +133,7 @@ IN ((monomial s c)*f) = IN (monomial s c) + IN f := begin
     have hy'' := finset.mem_of_subset (support_monomial_subset) hy',
     rw finset.mem_singleton at hy'',
     rw [IN, hy''],
-    simp *,
+    simp [hf],
     apply term_order.additive,
     exact finset.le_max' _ _ hi,
   }, {
@@ -145,7 +143,7 @@ IN ((monomial s c)*f) = IN (monomial s c) + IN f := begin
     apply @eq.not_lt _ _ (s + IN f : mv_term σ) (s + IN f : mv_term σ) rfl,
     apply hX,
     rw [mv_polynomial.mem_support_iff, sum_def, coeff_sum],
-    simp *,
+    simp [hc],
     exact coeff_IN_nonzero f hf,
   }
 end

@@ -87,7 +87,19 @@
 	skipbelow=0.5em plus 0.4em minus 0.2em,
 	leftmargin=-7pt, rightmargin=-7pt, innerleftmargin=6pt,
 	innerrightmargin=6pt, innertopmargin=6pt, innerbottommargin=3pt,
-	linewidth=1pt, linecolor=rulecolor, backgroundcolor=shadecolor,
+	% linewidth=1pt, linecolor=rulecolor, backgroundcolor=shadecolor,
+  linewidth=1.5pt, linecolor=rulecolor, topline=false, bottomline=false, rightline=false, %leftmargin=1em,
+	splittopskip=1.2em minus 0.2em,
+	splitbottomskip=0.5em plus 0.2em minus 0.1em,
+}
+\mdfdefinestyle{thmempty}{
+  usetwoside=false, % For use with memoir twoside
+	skipabove=0.5em plus 0.4em minus 0.2em,
+	skipbelow=0.5em plus 0.4em minus 0.2em,
+	leftmargin=-7pt, rightmargin=-7pt, innerleftmargin=6pt,
+	innerrightmargin=6pt, innertopmargin=6pt, innerbottommargin=3pt,
+	% linewidth=1pt, linecolor=rulecolor, backgroundcolor=shadecolor,
+  linewidth=1.5pt, linecolor=rulecolor, topline=false, bottomline=false, rightline=false,
 	splittopskip=1.2em minus 0.2em,
 	splitbottomskip=0.5em plus 0.2em minus 0.1em,
 }
@@ -106,10 +118,14 @@
 
 \theoremstyle{changedot}
 \theoremseparator{.}
-\newmdtheoremenv[style=thmframed]{theorem}{Theorem}[section]
-\newmdtheoremenv[style=thmframed]{proposition}[theorem]{Proposition}
-\newmdtheoremenv[style=thmframed]{lemma}[theorem]{Lemma}
-\newmdtheoremenv[style=thmframed]{corollary}[theorem]{Corollary}
+% \newmdtheoremenv[style=thmframed]{theorem}{Theorem}[section]
+% \newmdtheoremenv[style=thmframed]{proposition}[theorem]{Proposition}
+% \newmdtheoremenv[style=thmframed]{lemma}[theorem]{Lemma}
+% \newmdtheoremenv[style=thmframed]{corollary}[theorem]{Corollary}
+\newmdtheoremenv[style=thmempty]{theorem}{Theorem}[section]
+\newmdtheoremenv[style=thmempty]{proposition}[theorem]{Proposition}
+\newmdtheoremenv[style=thmempty]{lemma}[theorem]{Lemma}
+\newmdtheoremenv[style=thmempty]{corollary}[theorem]{Corollary}
 
 \theorembodyfont{\normalfont}
 %\theoremsymbol{\ensuremath{\triangle}}
@@ -148,15 +164,42 @@
 \newpage
 
 \section*{Introduction}
-The following is a project, in which I try to learn how to do formalized mathematics, using Lean as my proof checker. This document is a report on my learnings, and is intended as a resource for other mathematicians, who may wish to learn about Lean. 
+The following is a project, in which I try to learn how to do formalized mathematics, using Lean as my proof checker. This document is a report on my learnings and is intended as a resource for other mathematicians, who may wish to learn about Lean.
+
+The first section covers a variant of the type theory used in Lean. In it, I build a mathematical foundation, on which to base your understanding of Lean. The second section introduces Lean as a tool to assist the tedious work of doing formalized mathematics. Here, I also showcase some of the ``engineering'' aspects of Lean, which are needed to scale a formalism to the state of modern mathematics. In particular, I highlight the use of type classes, which will be needed in section 3. The third section is dedicated to walking through a worked example, which is the development of Gröbner bases for polynomial rings over fields. This is to show the work required to bring a modern algebraic theory into Lean. It will also serve as a reference example for others, who wish to formalize non-trivial mathematics in Lean.
 
 \section{Martin-Löf dependent type theory}\label{sec:tt}
-Dependent type theory is a logical theory, comparable to first order logic. Similarly to how we usually think we do mathematics in first order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this chapter I'll give a taste of how dependent type theory works as a formal system. The development will largely follow the exposition of \cite{rijke2022introduction}.
+Dependent type theory is a logical theory, comparable to first-order logic. Similarly to how we usually think we do mathematics in first-order logic with ZFC set theory on top, we can translate our mathematical theories into other logical theories. In this section, I'll explain how dependent type theory works as a formal system. The development will largely follow the exposition of \cite{rijke2022introduction}.
 
-We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of inductive constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean have made, makes sense. If you're only interested in learning Lean, feel free to skip this section.
+We'll build a dependent type theory, which is similar to the one used by Lean. The goal is not to match the calculus of inductive constructions (which is used in Lean), but rather to develop a theory together, to see how and why the choices Lean has made, make sense. If you're only interested in learning Lean, feel free to skip this section.
+
+\subsection{Intuition and how to read the notation}
+The following development may seem very notation-heavy and needlessly abstract, so here's a little primer: Suppose I have three functions (or morphisms)
+\begin{align*}
+  f &: A \to B \\
+  g &: A \to C \\
+  h &: B \to C
+\end{align*}
+
+The the composition $h \circ f : A \to C$ make sense, but the composition $h \circ g$ doesn't. Keeping track of domains and codomains in this small example is not a problem, but when more functions get involved, it can become unwieldy. This is where a type-checking compiler, as found in programming languages like Java and Haskell, can help.
+
+Similarly, if we have three propositions
+\begin{align*}
+  p_{1} &= P \implies Q \\
+  p_{2} &= P \implies R \\
+  p_{3} &= Q \implies R
+\end{align*}
+
+have can deduce $P \implies R$ from $p_{1}$ and $p_{3}$, but we cannot deduce that from $p_{1}$ and $p_{2}$. This is similar to the situation above. In fact, we translate our propositions directly into functions and get a compiler to check it for us.
+
+Now, most propositions are not fixed statements, they are parameterized by variables, for example $p_{4} = x \le 0$. Since the truth of this proposition is dependent on the element $x$, we can't translate it into any fixed type. So we extend the type theory of our programming language, so that types can depend on variables, then build a type-checker for this type theory, and then we get a checker for our propositions.
+
+\subsubsection{Deduction rules}
+
+The rules for our language are given by deduction rules. There are two types of deduction rules: typing rules and evaluation rules. The typing rules are only needed by the type checker. They are statements of the form \textit{``if $f : A \to B$ and $g : B \to C$ are functions with given domains and codomains, then $g \circ f : A \to C$ is a function with the given domain and codomain.''} Strictly speaking, this is all we need to formulate mathematics, as we only need the type checker. However, it will turn out to be useful to have an actual programming language. This means we need to define what $g \circ f$ does. This is given by an evaluation rule: \textit{``if $a \in A$ is an element and $f : A \to B$ and $g : B \to C$ are functions with given domains and codomains, then $(g \circ f)(a) = g(f(a))$.''} This tells us how to evaluate the terms we build. In the text below, rules that end in $A \type$ or $a : A$ are typing rules, and rules like $f(x) \doteq y$ are evaluation rules.
 
 \subsection{Inference rules}
-A Inference rule is on the form
+An inference rule is on the form
 
 \begin{prooftree}
   \hypo{\Gamma \vdash P}
@@ -164,11 +207,11 @@ A Inference rule is on the form
   \infer2[$\land$-intro]{\Gamma \vdash P \land Q}
 \end{prooftree}
 
-which is read as follows: if we, in a context $\Gamma$, can prove $P$ and in the same environment can prove $Q$, then we can prove $P \land Q$ in the context $\Gamma$.
+which is read as follows: if we, in a context $\Gamma$, can prove $P$ and in the same context can prove $Q$, then we can prove $P \land Q$ in the context $\Gamma$.
 
-The defining feature of {\emph type} theory is, that every element has a type. Thus the above is meaningless, as $P$ and $Q$ have no type. Compare this to ZFC, where everything is either a proposition from first order logic, or a set. This leads to weird statements like $0 \in 1$, which is well-posed since everything is a set, but does not carry a meaning in our ``usual'' way of doing mathematics. Type theory asks that every element has a type. This is particularly helpful when doing computerized proofs, as it helps the proof-checker catch weird statements like $0 \in 1$. Since $1$ has the type of a natural number and not the type of a set, Lean can give an error, instead of silently trying to prove what may well have been a typo.
+The defining feature of {\emph type} theory is, that every element has a type. Thus the above is meaningless, as $P$ and $Q$ have no type. Compare this to ZFC, where everything is either a proposition from first-order logic, or a set. This leads to weird statements like $0 \in 1$, which is well-posed since everything is a set but does not carry meaning in our ``usual'' way of doing mathematics. Type theory asks that every element has a type. This is particularly helpful when doing computerized proofs, as it helps the proof-checker catch weird statements like $0 \in 1$. Since $1$ has the type of a natural number and not the type of a set, Lean can give an error, instead of silently trying to prove what may well have been a typo.
 
-In type theory the above rewrite rule would look like this:
+In type theory, the above rewrite rule would look like this:
 
 \begin{prooftree}
   % \hypo{\Gamma \vdash \mathit{Prop} \type}
@@ -177,15 +220,15 @@ In type theory the above rewrite rule would look like this:
   \infer2[$\land$-intro]{\Gamma \vdash P \land Q : \Prop}
 \end{prooftree}
 
-Everything is read the same, except $P : \Prop$ is read ``$P$ has type $\Prop$''. $\Prop$ is the type of propositions. I will not spend too much time going through every single single inference rule. I will, however, introduce the defining features of dependent type theory: dependent types, and show how they are used.
+Everything is read the same, except $P : \Prop$ is read ``$P$ has type $\Prop$''. $\Prop$ is the type of propositions. I will not spend too much time going through every single inference rule. I will, however, introduce the defining features of dependent type theory: dependent types, and show how they are used.
 
 \begin{definition}
-  Type theory has four different \textit{judgements}.
+  Type theory has four different \textit{judgments}.
   \begin{enumerate}
     \item $\Gamma \vdash A \type$ says $A$ is a well-formed type in context $\Gamma$.
     \item $\Gamma \vdash A \doteq B \type$ says $A$ and $B$ are judgementally equal types in context $\Gamma$.
     \item $\Gamma \vdash a : A$ says $a$ is an element of type $A$ in context $\Gamma$.
-    \item $\Gamma,\, a:A,\, b:A \vdash a \doteq b \type$ says $a$ and $b$ both have type $A$ and are judgementally equal.
+    \item $\Gamma,\, a:A,\, b:A \vdash a \doteq b : A$ says $a$ and $b$ both have type $A$ and are judgementally equal.
   \end{enumerate}
 \end{definition}
 
@@ -265,7 +308,7 @@ Note that for different $x : A$ in the context, $B(x)$ may be different type. Us
     &
     &\begin{prooftree}
       \hypo{\Gamma, x : A \vdash b(x) : B(x)}
-      \infer1{\Gamma, x : A \vdash (\la x b(x))(x) \doteq b(x) : B(x)}
+      \infer1{\Gamma, x : A \vdash (\la y b(y))(x) \doteq b(x) : B(x)}
     \end{prooftree}
   \end{align*}
 
@@ -303,6 +346,7 @@ and the unit type (true) is given by
   \end{align*}
 
 \end{definition}
+\textit{Remark.} The functions $ind_{\emptyset}$ and $ind_{\mathbf 1}$ are called induction functions or induction rules. They govern the behaviour of these and all our future types.
 
 So $\emptyset$ is a false proposition, and $\mathbf 1$ is a true proposition, with the proof $\bullet : \mathbf 1$. What would other logical operators look like in this interpretation? Implication simply becomes a function. $f : A \to B$ says ``f takes an element of $A$ and produces an element of $B$'' or as propositions ``$f$ takes a proof of $A$ and produces a proof of $B$'', which is exactly what an implication does.
 
@@ -363,6 +407,8 @@ So how do we actually use the induction principle $\mathit{ind}_{\emptyset}$? We
     \infer2{\Gamma \vdash \iota_{2} : B \to A \lor B}
   \end{prooftree}
 \end{align*}
+
+The disjunction is equipped with the following induction function:
 \begin{align*}
   \begin{prooftree}
     \hypo{\Gamma \vdash A \type}
@@ -453,6 +499,7 @@ So far we've only thought about propositions. Let's introduce to natural numbers
       \infer0{\vdash succ_{\N} : \N \to \N}
     \end{prooftree}
 \end{align*}
+has the following induction rule:
 \begin{align*}
   \begin{prooftree}
     \hypo{\Gamma, n : \N \vdash P(n) \type}
@@ -489,7 +536,7 @@ All these inference rules are quite heavy. Let's introduce some lighter notation
   | succ$_\N$ : $\N \to \N$
 \end{lstlisting}
 
-Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n).\] The derived induction principle is the cornerstone of the Calculus of Inductive Constructions, which is the logic that Lean is built on.\footnote{Not all type theories include automatically derived induction principles. In some cases, it clashes with additional structure, you may wish to put on your types. You can work around that, if you want to, and the derived induction principle provides a principled way to develop the theory of mathematics.} For a more thorough derivation of the induction principle, see section~\ref{sec:ind} in the appendix. We can similarly define
+Everything in the inference rules is derivable from this definition. I particular the induction principle becomes \[ind_{\N} : P(0_{\N}) \to (\Pi_{n:\N}\, (P(n) \to P(succ_{\N}(n)))) \to \Pi_{n:\N}\, P(n).\] The derived induction principle is the cornerstone of the Calculus of Inductive Constructions, which is the logic that Lean is built on.\footnote{Not all type theories include automatically derived induction principles. In some cases, it clashes with additional structure, you may wish to put on your types. However, in most cases it's not an issue and the derived induction principle provides a principled way to develop the theory of mathematics.} For a more thorough derivation of the induction principle, see section~\ref{sec:ind} in the appendix. We can similarly define
 
 \begin{lstlisting}[mathescape=true]
   type $\vdash$ A$\lor$B
@@ -515,14 +562,14 @@ First, let's define $p_{0} := id : \N \to \N$. This is a function taking a numbe
 
 We can see that it satisfies our specification:
 \begin{align*}
-  add_{\N}(0_{\N}, n) &\doteq (\la m \la n ind_{\N}(id, \la x \la f succ_{\N} \circ f, m)(n)(0_{\N}, n) \\
+  add_{\N}(0_{\N}, n) &\doteq (\la m \la n ind_{\N}(id, \la x \la f succ_{\N} \circ f, m)(n))(0_{\N}, n) \\
   &\doteq ind_{\N}(id, \la x \la f succ_{\N} \circ f, 0_{\N})(n) \\
                  &\doteq id(n) \\
                  &\doteq n \\ \\
   add_{\N}(succ_{\N}(m), n) &\doteq ind_{\N}(id, \la x \la f succ_{\N} \circ f, succ_{\N}(m))(n) \\
                  &\doteq (\la x \la f succ_{\N} \circ f)(n, ind_{\N}(id, \la x \la f succ_{\N} \circ f, m))(n) \\
-                 &\doteq (succ_{\N} \circ ind_{\N}(id, \la x \la f succ_{\N} \circ f), m)(n) \\
-                 &\doteq succ(ind_{\N}(id, \la x \la f succ_{\N} \circ f), m)(n)) \\
+                 &\doteq (succ_{\N} \circ ind_{\N}(id, \la x \la f succ_{\N} \circ f, m))(n) \\
+                 &\doteq succ(ind_{\N}(id, \la x \la f succ_{\N} \circ f, m)(n)) \\
   &\doteq succ(add_{\N}(m, n))
 \end{align*}
 
@@ -563,7 +610,7 @@ It's remarkable that there is no axioms about transitivity or symmetry. These ca
 \end{proof}
 Short and sweet, although the lack of type annotations makes it a little hard to decipher. It might help if we specialize the type of $ind_{=_{A}}$. In our case $P(x)$ means $a=_{A}x$:
 \begin{align*}
-  ind_{=_{A}} &: \Pi_{a:A}\, (P(a)& &\to& \Pi_{b:A}\, a&=_{A}b &\to& &P(b)) \\
+  ind_{=_{A}} &: \Pi_{b:A}\, (P(b)& &\to& \Pi_{c:A}\, b&=_{A}c &\to& &P(c)) \\
   ind_{=_{A}} &: \Pi_{b:A}\, (a=_{A}b& &\to& \Pi_{c:A}\, b&=_{A}c &\to& &(a=_{A}c)).
 \end{align*}
 
@@ -590,7 +637,7 @@ We can use this equality to prove the things I mentioned earlier: $0_{\N} \neq s
 \begin{lstlisting}[mathescape=true]
   def add : $\N \to \N \to \N$
   | 0       := id
-  | succ(m) := succ$_{\N}$ $\circ$ add(m)
+  | succ(m) := succ $\circ$ add(m)
 \end{lstlisting}
 \end{definition}
 
@@ -663,7 +710,7 @@ which is exactly what we need to prove $0 \neq succ(n)$. Remember, that $0 \neq 
   $0$ is the first element of $\N$, i.e. we have $\Pi_{n:\N} \neg(0 = succ(n))$.
 \end{theorem}
 \begin{proof}~
-  Given $n : \N$, we want to prove $0 = succ(n) \to \emptyset$, so we assume $0 = succ(n)$ and will try to produce an element of the empty type. To do this, we interpret \lstinline{$\bullet$ : nat_equals(0, 0)}, since \lstinline{nat_equals(0, 0) $\doteq$ $\mathbf 1$}. Then, using the assumption $0 = succ(n)$, we can rewrite the last $0$ in that type, to obtain an element of type \lstinline{nat_equals(0, succ(n))}, which is judgementally equal to $\emptyset$.
+  Given $n : \N$, we want to prove $(0 = succ(n)) \to \emptyset$, so we assume $0 = succ(n)$ and will try to produce an element of the empty type. To do this, we interpret the element \lstinline{$\bullet$ : nat_equals(0, 0)}, since \lstinline{nat_equals(0, 0) $\doteq$ $\mathbf 1$}. Then, using the assumption $0 = succ(n)$, we can rewrite the last $0$ in that type, to obtain an element of the type \lstinline{nat_equals(0, succ(n))}, which is judgementally equal to $\emptyset$.
 
 \begin{lstlisting}[mathescape=true]
 def zero_ne_succ : $\Pi_{n : \N} (0 = succ(n)) \to nat\_equals(0, succ(n))$
@@ -714,7 +761,7 @@ The projection functions encode the axiom of choice\footnote{Or at least, they a
 
 The insight that solves this, is that a proposition doesn't have any ``content'', it is simply true or false. That is, once we have proved $\exists x: P(x)$, it should forget everything that went into the proof, and just remember the fact, that it is true. In other words, the type of a proposition should either be empty, or contain a single element.
 
-This immediately tells us, that $\Sigma$ types are not propositions, since it potentially has many different elements. Disjunctions are also not propositions, since $\iota_{1}(a) \neq \iota_{2}(b)$. Natural number certainly aren't propositions, which is to expected, so what is a proposition? The types $\emptyset$ and $\mathbf 1$ are propositions, since they contain respectively 0 and 1 element. Also, if two types $A$ and $B$ are propositions, then the type $A \to B$ is a proposition, and $\Sigma_{a:A}B$ is also a proposition. In this case $\Sigma_{a:A}B$ is a conjunction, ``A and B.''
+This immediately tells us, that $\Sigma$ types are not propositions, since it potentially has many different elements. Disjunctions, as we've defined them, are also not propositions, since $\iota_{1}(a) \neq \iota_{2}(b)$. Natural number certainly aren't propositions, which is to expected, so what is a proposition? The types $\emptyset$ and $\mathbf 1$ are propositions, since they contain respectively 0 and 1 element. Also, if two types $A$ and $B$ are propositions, then the type $A \to B$ is a proposition, and $\Sigma_{a:A}B$ is also a proposition. In this case $\Sigma_{a:A}B$ is a conjunction, ``A and B.''
 
 We can recover propositionality for existentials and disjunctions, by introducing \textit{universes}. Everything has a type, including types themselves. We used this to introduce the function \lstinline{nat_equals : $\N \to \N \to \Type$}, and I claimed that $\N$, $\emptyset$ and $\mathbf 1$ all have type $\Type$ (which isn't actually quite true). What is the type then, of $\Type$? Russels paradox still works in type theory, so we can't have $\Type : \Type$. The answer lies in the notion of \textit{universes}.
 
@@ -736,6 +783,8 @@ In our type theory, we introduce a tower of universes, indexed by the natural nu
   As an axiom, we have that elements of $\Prop$ are propositions:
   \[prop_{\bullet} : \Pi_{P:\Prop}\Pi_{x, y:P}\, x=_{P}y\]
   and the induction principle on a $\Prop$ can only produce elements, whose type is in $\Prop$.
+
+  Universes are closed under functions, so if $A : \Sort n$ and $B : \Sort m$ then $A \to B : \Sort \max(n, m)$.
 \end{definition}
 
 $\Prop$ is the universe of propositions, and $\Type$ is the universe of regular types. The crucial thing about universes, is that it allows us to restrict what we can do with propositions. Thus, we can define the existential quantifier:
@@ -776,66 +825,66 @@ type (n : $\N$) $\vdash$ even(n) : Prop
 \end{lstlisting}
 \end{definition}
 
-We don't have, in general, the law of excluded middle, i.e. $A \lor (A \to \emptyset)$. However, in some cases we can prove it:
-\begin{definition}
-  A proposition $A : \Prop$ for which we have $A \lor \neg A$ is called \textit{decidable}.
-\end{definition}
+% We don't have, in general, the law of excluded middle, i.e. $A \lor (A \to \emptyset)$. However, in some cases we can prove it:
 % \begin{definition}
-%   The type of booleans is defined asks
-% \begin{lstlisting}
-% type $\vdash$ $\B$
-% | T : $\B$
-% | F : $\B$
-% \end{lstlisting}
+%   A proposition $A : \Prop$ for which we have $A \lor \neg A$ is called \textit{decidable}.
 % \end{definition}
+% % \begin{definition}
+% %   The type of booleans is defined asks
+% % \begin{lstlisting}
+% % type $\vdash$ $\B$
+% % | T : $\B$
+% % | F : $\B$
+% % \end{lstlisting}
+% % \end{definition}
 
-% \begin{lemma}
-%   Equality on $\mathbb B$ is decidable.
-% \end{lemma}
-% \begin{proof}~ We use the same technique as in theorem~\ref{thm:zero_ne_succ}:
+% % \begin{lemma}
+% %   Equality on $\mathbb B$ is decidable.
+% % \end{lemma}
+% % \begin{proof}~ We use the same technique as in theorem~\ref{thm:zero_ne_succ}:
+% % \begin{lstlisting}
+% % def $\B$_eq : $\B \to \B \to Prop$
+% % | T, T := $\mathbf 1$
+% % | T, F := $\emptyset$
+% % | F, T := $\emptyset$
+% % | F, F := $\mathbf 1$
+
+% % def $\B$_dec : $\Pi_{a, b : \B} (a=b) \lor \neg(a=b)$
+% % | T, T := $\iota_{1}(refl)$
+% % | T, F := $\iota_{2}$($\la h$ ind$_{=}$(T, $\bullet : \B$_eq$(T, T)$, F, h))
+% % | F, T := $\iota_{2}$($\la h$ ind$_{=}$(F, $\bullet : \B$_eq$(F, F)$, F, h))
+% % | F, F := $\iota_{1}(refl)$
+% % \end{lstlisting}
+% % \end{proof}
+
+
+
+
+% \begin{theorem}
+%   \lstinline{even(n)} is decidable.
+% \end{theorem}
+% \begin{proof}
+%   Similarly to the proof of theorem~\ref{thm:zero_ne_succ}, we construct a dependent type
 % \begin{lstlisting}
-% def $\B$_eq : $\B \to \B \to Prop$
-% | T, T := $\mathbf 1$
-% | T, F := $\emptyset$
-% | F, T := $\emptyset$
-% | F, F := $\mathbf 1$
+% def is_even : $\N \to \Prop$
+% | 0, h             := $\mathbf 1$
+% | succ(0), h       := $\emptyset$
+% | succ(succ(n)), h := is_even(n, h)
 
-% def $\B$_dec : $\Pi_{a, b : \B} (a=b) \lor \neg(a=b)$
-% | T, T := $\iota_{1}(refl)$
-% | T, F := $\iota_{2}$($\la h$ ind$_{=}$(T, $\bullet : \B$_eq$(T, T)$, F, h))
-% | F, T := $\iota_{2}$($\la h$ ind$_{=}$(F, $\bullet : \B$_eq$(F, F)$, F, h))
-% | F, F := $\iota_{1}(refl)$
+% def ext : $\Pi_{n:\N}$ even(n) $\to$ is_even(n)
+% | n, h := ind$_{even}$($\bullet$, $\la m \la h$ $\bullet$, n, h)
+
+% def if_even_eq_empty : $\Pi_{n:\N} \neg$even(n) $\to$ is_even(n) = $\emptyset$
+% | n, h :=
+
+% def even_dec : $\Pi_{n:\N}$ $\to$ even(n)$\lor$$\neg$even(n)
+% | 0 := $\iota_{1}$(zero_even)
+% | succ(0) := $\iota_2$($\la h$ ext(succ(0), h))
+% | succ(succ(n)) := ind$_\lor$( $\la h \iota_1$(step_even(n, h))
+%                        , $\la x \iota_2$()
+%                        , even_dec(n))
 % \end{lstlisting}
 % \end{proof}
-
-
-
-
-\begin{theorem}
-  \lstinline{even(n)} is decidable.
-\end{theorem}
-\begin{proof}
-  Similarly to the proof of theorem~\ref{thm:zero_ne_succ}, we construct a dependent type
-\begin{lstlisting}
-def is_even : $\N \to \Prop$
-| 0, h             := $\mathbf 1$
-| succ(0), h       := $\emptyset$
-| succ(succ(n)), h := is_even(n, h)
-
-def ext : $\Pi_{n:\N}$ even(n) $\to$ is_even(n)
-| n, h := ind$_{even}$($\bullet$, $\la m \la h$ $\bullet$, n, h)
-
-def if_even_eq_empty : $\Pi_{n:\N} \neg$even(n) $\to$ is_even(n) = $\emptyset$
-| n, h := 
-
-def even_dec : $\Pi_{n:\N}$ $\to$ even(n)$\lor$$\neg$even(n)
-| 0 := $\iota_{1}$(zero_even)
-| succ(0) := $\iota_2$($\la h$ ext(succ(0), h))
-| succ(succ(n)) := ind$_\lor$( $\la h \iota_1$(step_even(n, h))
-                       , $\la x \iota_2$()
-                       , even_dec(n))
-\end{lstlisting}
-\end{proof}
 
 
 
@@ -848,9 +897,9 @@ We can introduce a computer. This computer can derive all the information we lea
 
 There are many such computer programs, the most prominent of which are Coq, Agda, Isabelle and Lean. I run the risk of upsetting a lot of people when I say, that these are not that dissimilar. They are all built on a type theory similar to the one above, and they serve the same purpose. By learning one, it becomes possible to read, if not write, proofs in all of them. They do of course differ on some points: the community of Lean is generally more inclined to use classical logic in their proofs, where especially Agda and Isabelle stick closer to constructive logic.
 
-Lean is interesting for a couple of reasons: it has a large library of formalized mathematics called mathlib. This is in contrast to Coq, where a lot of work is spread among different projects, so you may have difficulties combining results from disparate projects. For example if you were to formalize topological groups in Lean, mathlib contains definitions of both topological spaces, continuity and groups. So it's straightforward to define a topological group as a group with a topology such that the groups operations are continous. The Coq standard library, mathcomp, on the other hand, contains neither groups nor topology, so you need to hunt after projects online, that formalize groups and topology. Lean has the advantage that documentation for the entire mathlib is centralized, so you only ever have to look in one place for you theorems and definitions.
+Lean is interesting for a couple of reasons: it has a large library of formalized mathematics called mathlib. This is in contrast to Coq, where a lot of work is spread among different projects, so you may have difficulties combining results from disparate projects. For example if you were to formalize topological groups in Lean, mathlib contains definitions of both topological spaces, continuity and groups. So it's straightforward to define a topological group as a group with a topology such that the group operations are continous. The Coq standard library, mathcomp, on the other hand, contains neither groups nor topology, so you need to hunt after projects online, that formalize groups and topology. Lean has the advantage that documentation for the entire mathlib is centralized, so you only ever have to look in one place for you theorems and definitions.
 
-Second reason is, that Lean have proven itself to be capable of modern mathematics via the Liquid Tensor project \cite{LiquidTensor}. This seems to indicate, that Lean is powerful enough to tackle most of the theorems we may wish to formalize.
+The second reason is that Lean have proven itself to be capable of modern mathematics via the Liquid Tensor project \cite{LiquidTensor}. This seems to indicate, that Lean is powerful enough to tackle most of the theorems we may wish to formalize.
 
 Of course, the other provers have advantages. Coq and Agda are much better suited for doing Homotopy Type Theory than Lean\footnote{This is a consequence of defining equality to be a proposition. HoTT requires equality to have a richer structure.}  and higher categories. Also, if you're formalizing algorithms, the pervasive use of classical logic in mathlib may be an obstacle. Case in point: the division algorithm developed in this project cannot be executed on examples, because polynomials in Lean use classical logic in their definition. Coq and Agda are much more pure in this sense.
 
@@ -937,7 +986,7 @@ structure group (G : Type) :=
   (inv : G → G)
   (one_mul : ∀ g : G, mul one g = g)
   (mul_one : ∀ g : G, mul g one = g)
-  (mul_inv : ∀ g : G, mul (inv g) g = one)
+  (mul_left_inv : ∀ g : G, mul (inv g) g = one)
 \end{minted}
 
 \textit{Remark:} \lean{structure} is just a neater way of writing a tuple, intead of as a product of types. Also, if you look at the definition of \lean{group} in mathlib, you'll see a lot more going on. This is because Lean includes a lot of convenience functions in the definition as well. Feel free to ignore those.
@@ -945,9 +994,7 @@ structure group (G : Type) :=
 This tuple has everything we need to work with groups, but it becomes cumbersome to pass the assumption that $\Z$ is a group along to every lemma, that talks about groups. To solve this, Lean introduces \textit{type classes}, indicated by the \lean{@[class]} above. These lay in the background, and doesn't need to be passed along explicitly. An example is
 \begin{minted}{lean}
 lemma mul_right_inv {G : Type} [group G] (g : G) :
-  mul a (inv a) = one := begin
-    rw [←mul_left_inv (inv g), inv_eq_of_mul (mul_left_inv g)]
-  end
+  mul a (inv a) = one := begin ... end
 \end{minted}
 Here the assumption that \lean{G} is a group is passed in square brackets and we can use it like so: \lean{mul_right_inv 2 : mul 2 (inv 2) = 1}. The group itself is written in curly brackets, which means that Lean infers that from context. Thus both the group and the proof that it is a group is inferred from context, so we don't have to write them explicitly. If we want to supply those arguments explicitly, we can write \lean{@mul_right_inv ℚ (ℚ.group) 2 : mul 2 (inv 2) = 1}.
 
@@ -960,7 +1007,7 @@ instance (G S : Type) [gs : group G] : group (S → G) := {
   one := λ_, one,
   inv := λf, λs, inv (f s),
   one_mul := λg, begin apply funext, intro s, rw one_mul, end,
-  mul_one := λg, begin apply funext, intro s, rw mul_one, end ,
+  mul_one := λg, begin apply funext, intro s, rw mul_one, end,
   mul_inv := λg, begin apply funext, intro s, rw mul_inv, end,
 }
 \end{minted}
@@ -977,7 +1024,7 @@ structure has_add (A : Type) :=
 infixl ` + `:65  := has_add.add
 \end{minted}
 
-This defines a type class of types having a function defined on them called \lean{add}. Below, we define \lean{+} to be a left-associating infix operator, which means \lean{has_add.add}. Thus \lean{1 + 1 = has_add.add 1 1} by definition. The number \lean{65} indicates how strongly the operator binds, to make multiplication bind stronger than addition.
+This defines a type class of types having a function defined on them called \lean{add}. Below, we define \lean{+} to be a left-associating infix operator, which means \lean{has_add.add}. Thus \lean{1 + 1 = has_add.add 1 1} by definition. The number \lean{65} indicates how strongly the operator binds, to make addition bind weaker than f.ex. multiplication.
 
 Similarly, Lean defines \lean{has_mul (*), has_le (≤), has_subset (⊆)} and many more. Type classes can ``extend'' each other, so a group can be defined as something of class \lean{has_mul}, for which the group axioms hold. Take a look at how \lean{group} is defined in the mathlib. You might be surprised.
 
@@ -998,6 +1045,8 @@ Now, \lean{ℤ_alt} does not have an instance of \lean{group}, so you're free to
 \begin{minted}{lean}
 instance : group ℤ_alt := {
   mul := λ m n, int.add (int.add m n) 1,
+  one := to_Z_alt (-1),
+  inv := λ m, to_Z_alt ((-1) + (-of_Z_alt m) + (-1)),
   ...
 }
 \end{minted}
@@ -1005,11 +1054,13 @@ instance : group ℤ_alt := {
 uses the addition already defined on \lean{ℤ}. However, since \lean{ℤ_alt} has no instances, we don't get the addition symbol. We can tell Lean to inherit some of the type classes from \lean{ℤ} like so:
 
 \begin{minted}{lean}
-@[derive [has_add, has_one]]
+@[derive [has_add, has_one, has_neg]]
 def ℤ_alt := ℤ
 
 instance : group ℤ_alt := {
   mul := λ m n, m + n + 1,
+  one := -1,
+  inv := λ m, (-1) + (-m) + (-1),
   ...
 }
 \end{minted}
@@ -1033,7 +1084,7 @@ The way we treat this in mathematics, is using well-orders. We define the functi
 The most well-known well-order is the usual order on the natural numbers. In the case of the Ackermann function $A$, the pair $(m, n)$ decreases lexicographically in each recursive call.
 
 \begin{proposition}
-  If $\leq$ is a well-order on $S$, then so is the lexicographic order $\leq_{lex}$ on $S^{n}$, given by $(s_{1}, \dots, s_{n}) \leq_{lex} (t_{1}, \dots, t_{n})$ if either $(s_{1}, \dots, s_{n}) = (t_{1}, \dots, t_{n})$ or $s_{i} = t_{i}$ for $i=1, \dots, k$ and $s_{k} < t_{k}$ for some $k \in \N$.
+  If $\leq$ is a well-order on $S$, then so is the lexicographic order $\leq_{lex}$ on $S^{n}$, given by $(s_{1}, \dots, s_{n}) \leq_{lex} (t_{1}, \dots, t_{n})$ if either $(s_{1}, \dots, s_{n}) = (t_{1}, \dots, t_{n})$ or $s_{i} = t_{i}$ for $i=1, \dots, k-1$ and $s_{k} < t_{k}$ for some $k \in \N$.
 \end{proposition}
 \begin{proof}
   The proof is by induction in $n$. If $n = 1$ we are done since $\leq$ is a well-order.
@@ -1184,16 +1235,30 @@ def add : ℕ → ℕ → ℕ
 | (m+1) n := (add m n) + 1
 \end{minted}
 
-Sometimes, the well-order isn't obvious, or Lean may not be able to prove that the recursive calls decreases. In that case we can use \lean{using_well_founded} to specify the well-order and the proof. For example for the Ackermann function:
+Sometimes, the well-order isn't obvious, or Lean may not be able to prove that the recursive calls decreases. In that case we can use \lean{using_well_founded} to specify the well-order and the proof. For example for addition:
 
 \begin{minted}{lean}
-
+def add2 : ℕ × ℕ → ℕ
+| ⟨0,   n⟩ := n
+| ⟨m+1, n⟩ := add2 ⟨m, n⟩ + 1
+  using_well_founded {
+    rel_tac := λ _ _, `[exact {
+      r := λM N, to_lex M < to_lex N,
+      wf := prod.lex_wf nat.lt_wf nat.lt_wf,
+    }],
+    dec_tac := `[begin
+      simp,
+      rw prod.lex.lt_iff,
+      simp,
+      rw nat.lt_add_one_iff,
+    end],
+  }
 \end{minted}
 
 \subsection{Sets}\label{ssec:sets}
 So far, we've used types to fill the role of sets. However, that's not always practical. We don't have subtypes, so there is no way to express the concept of a subset. This means we can't talk about partitions or restrict a function to a subset. How would we talk about these things in Lean?
 
-The answer is simple. The statement $a \in A$ is a proposition, so we simply define
+We can define sets in Lean. The statement $a \in A$ is a proposition, so we simply define
 \begin{minted}{lean}
 def set (α : Type) := α → Prop
 def mem (α : Type) (S : set α) (a : α) : Prop := S a
@@ -1254,9 +1319,9 @@ h' := h.2
 
 
 \section{Gröbner bases as an extended example}
-In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal,'' informal proofs and the proofs in Lean, to get an understanding of the difference.
+In this section we'll develop the theory of Gröbner bases in polynomial rings over fields. We'll see both ``normal,'' informal proofs and the proofs in Lean, to get an understanding of the difference. The full code for this example can be found at
 
-We'll proceed as follows: first, we prove Dicksons lemma, which will later enable us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases, and prove that they exist for all ideals. Finally, we define the multivariate division algorithm, and prove its basic properties.
+We'll proceed as follows: first, we prove Dicksons lemma, which will later enable us to prove that every polynomial ring has a Gröbner basis. Then we define term orderings and prove that they are well-orders. Then we define Gröbner bases, and prove that they exist for all ideals. Finally, we define the multivariate division algorithm, and prove its basic properties. Notably, since I ran out of time, we do not prove that division by a Gröbner basis is independent of ordering, and we don't prove that a polynomial reduces to zero under division with a Gröbner basis if and only if it is in the ideal spanned by the basis.
 
 \subsection{Dicksons lemma}
 Dicksons lemma is a sort of well-ordering theorem for $\N^{n}$, but instead of finding a single least element, we find a finite collection of least elements.
@@ -1388,7 +1453,7 @@ Let's prove a simple lemma about term orders, that we're going to need later:
 \begin{proof}
   Since $0 \le v_{2}$ we have $v \le v_{1} = v_{1} + 0 \le v_{1} + v_{2}$, so the conclusion follows by transitivity.
 
-\inputminted[firstline=38, lastline=44]{lean}{../src/monomial_order.lean}
+\inputminted[firstline=37, lastline=43]{lean}{../src/monomial_order.lean}
   ~
 \end{proof}
 
@@ -1404,7 +1469,8 @@ Now, we can formulate the main theorem of this section:
 
   In lean it looks like this:
 
-  \inputminted[firstline=71, lastline=95]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=70, lastline=94]{lean}{../src/monomial_order.lean}
+  ~
 \end{proof}
 
 \begin{corollary}
@@ -1413,7 +1479,7 @@ Now, we can formulate the main theorem of this section:
 \begin{proof}
   Apply theorem \ref{thm:wf_iff_wo} to theorem \ref{thm:term_order_is_well_order}
 
-  \inputminted[firstline=97, lastline=104]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=96, lastline=103]{lean}{../src/monomial_order.lean}
   ~
 \end{proof}
 
@@ -1517,17 +1583,15 @@ The division algorithm for multivariate polynomials is a generalization of the u
 
 In Lean, this proposition is split into two parts: first is a function, that computes the $h_{i}$ and $r$. Second is the proof that the results of this function satisfies the properties above. First we define a function, that performs a single step in the division algorithm:
 
-\inputminted[firstline=49, lastline=57]{lean}{../src/mv_division.lean}
-
-Note that \lean{@dite _ (P) _ (λ h, a) (λ h, b)} is actually \lean{if h : P then a else b}, but we need to explicitly provide Lean with a proof that \lean{P} is decidable. Thus, the funny notation.
+\inputminted[firstline=48, lastline=59]{lean}{../src/mv_division.lean}
 
 In the above we use the function \lean{monomial_div}. It is defined as follows:
 
-\inputminted[firstline=22, lastline=24]{lean}{../src/mv_division.lean}
+\inputminted[firstline=22, lastline=23]{lean}{../src/mv_division.lean}
 
 Now, before we can define the actual algorithm, there is one more technical challenge we need to overcome: if the polynomial $s$ is a constant polynomial, then $\IN(s) = 0$. In this case, the initial term doesn't decrease in the recursive step, since in the next step we will get to $s = 0$ and $\IN(0) = 0$. It's not a problem, because in that case the next step of the algorithm will be the last, but Lean doesn't know that.
 
-We fix this by defining a variant of the inital term: \lean{IN' s : with_bot (mv_term σ))}, which is equal to \lean{IN s} when $s \ne 0$, but is a special value \lean{⊥} when $s = 0$. We can extend the ordering, so that \lean{⊥ < t} for all terms $t$. This is still a well-order, and now we can use that \lean{IN'} strcitly decreases in every step.
+We fix this by defining a variant of the inital term: \lean{IN' s : with_bot (mv_term σ))}, which is equal to \lean{IN s} when $s \ne 0$, but is a special value \lean{⊥} when $s = 0$. We can extend the ordering, so that \lean{⊥ < t} for all terms $t$. This is still a well-order, and now we can use that \lean{IN'} strictly decreases in every step.
 
 \begin{definition} Alternative version of $\IN$.
 
@@ -1538,13 +1602,13 @@ We fix this by defining a variant of the inital term: \lean{IN' s : with_bot (mv
 \end{lemma}
 \begin{proof}
   ~
-  \inputminted[firstline=105, lastline=108]{lean}{../src/monomial_order.lean}
+  \inputminted[firstline=104, lastline=107]{lean}{../src/monomial_order.lean}
   ~
 \end{proof}
 
 And now we can finally state the division algorithm:
 
-\inputminted[firstline=311, lastline=330]{lean}{../src/mv_division.lean}
+\inputminted[firstline=313, lastline=332]{lean}{../src/mv_division.lean}
 
 The structure of this definition is as follows: given \lean{(a, r, s)} we check if \lean{s=0}. If so, we are done, and simply return the input. If not, we first prove that the recursive call we're about to do decreases in the third argument with respect to \lean{IN'}. Note, a tuple \lean{(a, r, s)} is actually \lean{(a, (r, s))}, so the third entry is the second entry of the second entry, hence the \lean{(...).snd.snd}. The proof of this is delegated to the lemma \lean{mv_div_step_decreases}. Finally, we perform a single step of the division algorithm, and call ourselves recursively.
 
@@ -1555,7 +1619,7 @@ Let's take a moment to orient ourselves. We identified some technical problems, 
 
 So now, we need to prove that the algorithm behaves the way we want it to. Just to get started, let's show something very simple: when \lean{mv_div_aux} terminates, \lean{s = 0}. You might just look at it and say ``obviously, in the base case we have \lean{s = 0}, and that's the only thing that matters,'' but nothing is that simple in Lean. Instead, we prove it inductively: we show that \lean{s = 0} in the base case, and that it is preserved in the recursive steps.
 
-\inputminted[firstline=332, lastline=350]{lean}{../src/mv_division.lean}
+\inputminted[firstline=334, lastline=357]{lean}{../src/mv_division.lean}
 
 The proof is not dificult, it is just a matter of unfolding definitions and checking that it is true, but it shows how we do proofs about recursive functions.
 
@@ -1563,13 +1627,23 @@ Now, let's prove that we have \[f = h_{1}F_{1} + \dots + h_{m}F_{m} + r + s\]
 
 First, we prove that if the equality already holds for some $h_{1}, \dots, h_{m}, r, s$, then it still holds after applying \lean{mv_div_step}:
 
-\inputminted[firstline=59, lastline=66]{lean}{../src/mv_division.lean}
+\inputminted[firstline=61, lastline=68]{lean}{../src/mv_division.lean}
 
 The proof is long and tedious, so look it up if you want to. We're just going to use it:
 
-\inputminted[firstline=357, lastline=386]{lean}{../src/mv_division.lean}
+\inputminted[firstline=359, lastline=388]{lean}{../src/mv_division.lean}
 
 And similarly we can prove that the remainder is either zero or indivisible in any term by any leading term of the $F_{i}$'s.
+
+Finally, we can wrap it all into a neat little package:
+
+\inputminted[firstline=443, lastline=449]{lean}{../src/mv_division.lean}
+
+where \lean{mv_div_r} gives the remainder and \lean{mv_div_q} gives the quotients. Similarly, we can translate the \lean{spec} lemmas:
+
+\inputminted[firstline=451, lastline=469]{lean}{../src/mv_division.lean}
+
+And that concludes our journey, thank you for coming along. Of course, a lot was left out, but most of it is tedious detail. I hope this large example has demonstrated the ideas about well-founded recursion, type aliases and set theory I talked about in the previous section.
 
 
 
@@ -1681,21 +1755,21 @@ eq.rec :
 \end{minted}
 
 
-\section{Useful tactics}
-\begin{itemize}
-  \item[intro/intros]
-  \item[rw]
-  \item[exact]
-  \item[have/let]
-  \item[suffices]
-  \item[apply/refine]
-  \item[split/left/right]
-  \item[cases]
-  \item[rcases]
-  \item[induction]
-  \item[by\_contra]
-  \item[conv]
-\end{itemize}
+% \section{Useful tactics}
+% \begin{itemize}
+%   \item[intro/intros]
+%   \item[rw]
+%   \item[exact]
+%   \item[have/let]
+%   \item[suffices]
+%   \item[apply/refine]
+%   \item[split/left/right]
+%   \item[cases]
+%   \item[rcases]
+%   \item[induction]
+%   \item[by\_contra]
+%   \item[conv]
+% \end{itemize}
 
 \section{A monoid structure on \texttt{vector N n}}\label{lean:vector_add_monoid}
 \inputminted{lean}{../src/vector_add_monoid.lean}
@@ -1710,8 +1784,7 @@ When we translate this to Lean, things get a little more complex, as we need to 
 
 \section{Lemmas about the initial term}\label{app:IN}
 Note: this part of the proof is not completed. To complete the proofs, we can use \lean{admit} in some places.
-\inputminted[firstline=77, lastline=140]{lean}{../src/monomial_order.lean}
-\inputminted[firstline=27, lastline=65]{lean}{../src/mv_division.lean}
+\inputminted[firstline=55]{lean}{../src/initial_term.lean}
 
 
 \end{document}

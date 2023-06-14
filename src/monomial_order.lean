@@ -11,7 +11,6 @@ import data.mv_polynomial.basic
 import ring_theory.polynomial.basic
 import dickson
 import dickson_add_monoid
-import utils
 
 open vector set finset finsupp mv_polynomial classical
 

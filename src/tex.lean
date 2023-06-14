@@ -1,6 +1,6 @@
 -- import tactic.hint
 -- import tactic.suggest
--- import tactic.linarith
+--import tactic.linarith
 import tactic.nth_rewrite
 import data.set.basic
 import data.prod.lex
@@ -128,7 +128,7 @@ structure group' (G : Type) :=
 
 open group
 
-@[derive [has_add, has_one]]
+@[derive [has_add, has_one, has_neg]]
 def Z_alt := ℤ
 def to_Z_alt : ℤ → Z_alt := id 
 def of_Z_alt : Z_alt → ℤ := id 
@@ -162,8 +162,8 @@ instance (G S : Type*) [gs : group' G] : group' (S → G) := {
   mul_assoc := λf g h, begin apply funext, intro s, rw gs.mul_assoc, end,
   one := λ_, gs.one,
   inv := λf, λs, gs.inv (f s),
-  one_mul := λg, begin apply funext, intro s, rw gs.one_mul,end,
-  mul_one := λg, begin apply funext, intro s, rw gs.mul_one, end ,
+  one_mul := λg, begin apply funext, intro s, rw gs.one_mul, end,
+  mul_one := λg, begin apply funext, intro s, rw gs.mul_one, end,
   mul_inv := λg, begin apply funext, intro s, rw gs.mul_inv, end,
 }
 
@@ -244,9 +244,59 @@ def ack2 : ℕ → ℕ → ℕ
 | (m+1) 0 := ack2 m 1 
 | (m+1) (n+1) := ack2 m (ack2 (m+1) n)
 
+def ack3 : ℕ × ℕ → ℕ
+| ⟨m, n⟩ := if      hm : m = 0 then
+              n+1
+            else if hn : n = 0 then
+              -- have this1 : to_lex (m-1, 1) < to_lex (m, n), from sorry,
+              -- ack3 (m-1, 1)
+              sorry
+            else
+              have this2 : to_lex (m-1, (
+                -- have this4 : to_lex (m, n-1) < to_lex (m, n), from sorry,
+                -- ack3 (m, n-1))
+                sorry)
+                ) < to_lex (m, n),
+              from sorry, 
+              ack3 (m-1, 
+                have this3 : to_lex (m, n-1) < to_lex (m, n), from sorry,
+                ack3 (m, n-1))
+  using_well_founded {
+    rel_tac := λ _ _, `[exact {
+      r := λM N, to_lex M < to_lex N,
+      wf := prod.lex_wf nat.lt_wf nat.lt_wf,
+    }],
+    dec_tac := `[begin
+      exact this,
+    end]
+    -- dec_tac := `[begin
+    --   simp,
+    --   rw prod.lex_iff,
+    --   simp,
+    --   left,
+    --   rw nat.sub_one,
+    --   exact nat.pred_lt hm,
+    -- end],
+  }
+
 def add : ℕ → ℕ → ℕ
 | 0     n := n 
 | (m+1) n := (add m n) + 1
+
+def add2 : ℕ × ℕ → ℕ
+| ⟨0,   n⟩ := n
+| ⟨m+1, n⟩ := add2 ⟨m, n⟩ + 1
+  using_well_founded {
+    rel_tac := λ _ _, `[exact {
+      r := λM N, to_lex M < to_lex N,
+      wf := prod.lex_wf nat.lt_wf nat.lt_wf,
+    }],
+    dec_tac := `[begin
+      simp,
+      rw prod.lex.lt_iff,
+      simp,
+    end],
+  }
 
 example (A B : Prop) : (¬ A) → (A ∨ B) → B := begin
   intro na,
